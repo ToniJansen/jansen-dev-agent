@@ -8,6 +8,8 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).parent / ".env")
 
 from reviewer import review_file
+from code_fixer import fix_file
+from github_pr import open_review_pr
 from telegram_sender import send
 
 logging.basicConfig(
@@ -30,6 +32,14 @@ def main() -> None:
     report = review_file(str(target_path))
     send(report)
     log.info("Code review report delivered.")
+
+    log.info("Generating fixes...")
+    fixed_code = fix_file(str(target_path), report)
+
+    log.info("Opening GitHub PR...")
+    pr_url = open_review_pr(target_path.name, report, fixed_code)
+    send(f"🔗 PR opened: {pr_url}")
+    log.info("PR opened: %s", pr_url)
     print(report)
 
 
