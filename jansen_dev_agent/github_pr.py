@@ -75,8 +75,8 @@ def open_review_pr(filename: str, review: str, fixed_code: str) -> str:
     """Create branch, commit fixed code + review report, open PR. Returns PR URL."""
     repo = os.environ["GITHUB_REPO"]
     date = datetime.now().strftime("%Y-%m-%d")
-    ts = datetime.now().strftime("%H%M")
-    branch = f"agent/review-{date}-{ts}"
+    ts = datetime.now().strftime("%Y%m%d%H%M%S")
+    branch = f"agent/review-{ts}"
 
     default = _get_default_branch(repo)
     sha = _get_branch_sha(repo, default)
@@ -111,7 +111,7 @@ def open_review_pr(filename: str, review: str, fixed_code: str) -> str:
 
     return _open_pr(
         repo=repo,
-        title=f"[Agent] Code review fixes — {filename} ({date})",
+        title=f"[Agent] Code review fixes — {filename} ({ts})",
         body=pr_body,
         head=branch,
         base=default,
