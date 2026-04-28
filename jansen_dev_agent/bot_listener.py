@@ -17,6 +17,7 @@ from sql_reviewer import review_sql
 from meeting_processor import process_meeting
 from code_fixer import fix_file
 from github_pr import open_review_pr
+from greeter import greet
 from file_processor import FileTooLargeError
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(levelname)s  %(message)s")
@@ -26,9 +27,13 @@ OWNER_ID         = int(os.environ.get("TELEGRAM_CHAT_ID", "0"))
 MAINTENANCE_FLAG = Path(__file__).parent / ".maintenance"
 LARGE_FILE_BYTES = 20_000
 
-_CODE_KEYWORDS = {"def ", "class ", "import ", "```python", "if __name__"}
-_SQL_KEYWORDS  = {"select ", "insert ", "update ", "delete ", "create ", "drop ",
-                  "from ", "join ", "where ", "group by", "with "}
+_CODE_KEYWORDS    = {"def ", "class ", "import ", "```python", "if __name__"}
+_SQL_KEYWORDS     = {"select ", "insert ", "update ", "delete ", "create ", "drop ",
+                     "from ", "join ", "where ", "group by", "with "}
+_MEETING_KEYWORDS = {"action item", "decision", "agenda", "blocker", "standup",
+                     "sprint", "retrospective", "attendee", "discussed", "agreed",
+                     "action:", "owner:", "minutes", "pauta", "ata ",
+                     "reunião", "decisão", "encaminhamento"}
 
 
 def _detect_type(text: str) -> str:
@@ -37,7 +42,9 @@ def _detect_type(text: str) -> str:
         return "code"
     if any(kw in lower for kw in _SQL_KEYWORDS):
         return "sql"
-    return "meeting"
+    if any(kw in lower for kw in _MEETING_KEYWORDS):
+        return "meeting"
+    return "greeting"
 
 
 def _is_maintenance() -> bool:
@@ -138,15 +145,16 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         return
 
     text = update.message.text or ""
-    if len(text) < 50:
-        await update.message.reply_text(
-            "Send a Python snippet, SQL query, or meeting transcript (min 50 chars)."
-        )
+    content_type = _detect_type(text)
+
+    if len(text) < 50 or content_type == "greeting":
+        await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
+        response = await asyncio.to_thread(greet, text)
+        await _reply(update, response)
         return
 
     is_large = len(text) > LARGE_FILE_BYTES
     await _send_wait(update, context, large=is_large)
-    content_type = _detect_type(text)
     suffix = {"code": ".py", "sql": ".sql", "meeting": ".md"}[content_type]
 
     with tempfile.NamedTemporaryFile(mode="w", suffix=suffix, delete=False, encoding="utf-8") as tmp:
