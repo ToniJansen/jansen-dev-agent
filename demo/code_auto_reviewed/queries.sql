@@ -2,67 +2,73 @@
 -- WARNING: This file contains intentional issues for automated review demo
 
 -- ============================================================
--- 1. SELECT * — should select only needed columns
+-- 1. SELECT only necessary columns
 -- ============================================================
-SELECT * FROM orders WHERE status = 'pending';
+SELECT order_id, customer_id, status FROM orders WHERE status = 'pending';
 
 -- ============================================================
--- 2. SQL Injection — dynamic query built via string concat
+-- 2. SQL Injection — dynamic query built via parameterized queries
 -- ============================================================
--- BAD PRACTICE (used in application code):
--- query = "SELECT * FROM users WHERE email = '" + user_email + "'"
--- query = "UPDATE orders SET status = '" + new_status + "' WHERE id = " + order_id
+-- GOOD PRACTICE (used in application code):
+-- query = "SELECT * FROM users WHERE email = @user_email"
+-- query = "UPDATE orders SET status = @new_status WHERE id = @order_id"
 
 -- ============================================================
--- 3. DELETE without WHERE — drops ALL rows
+-- 3. DELETE with WHERE — drops only specified rows
 -- ============================================================
-DELETE FROM order_temp;
+DELETE FROM order_temp WHERE id = @id;
 
 -- ============================================================
--- 4. No LIMIT on potentially millions of rows
+-- 4. LIMIT on potentially millions of rows
 -- ============================================================
 SELECT order_id, customer_id, total_amount, created_at
 FROM orders
-WHERE created_at > '2020-01-01';
+WHERE created_at > @date
+LIMIT 100;
 
 -- ============================================================
--- 5. Hardcoded customer ID — should be parameterized
+-- 5. Parameterized customer ID
 -- ============================================================
-UPDATE orders SET status = 'cancelled' WHERE customer_id = 12345;
+UPDATE orders SET status = @status WHERE customer_id = @customer_id;
 
 -- ============================================================
--- 6. Implicit type cast — numeric column compared to string
+-- 6. Explicit type cast — numeric column compared to numeric value
 -- ============================================================
-SELECT * FROM payments WHERE amount = '150.00';
+SELECT * FROM payments WHERE CAST(amount AS DECIMAL(10, 2)) = 150.00;
 
 -- ============================================================
--- 7. N+1 pattern — should use JOIN instead of loop
+-- 7. JOIN instead of N+1 pattern
 -- ============================================================
--- Step 1: fetch all active orders
-SELECT order_id, customer_id FROM orders WHERE status = 'active';
--- Step 2 (called in a loop for each row — N+1 problem):
--- SELECT name, email FROM customers WHERE id = {customer_id}
+SELECT o.order_id, c.name, c.email
+FROM orders o
+JOIN customers c ON o.customer_id = c.id
+WHERE o.status = 'active';
 
 -- ============================================================
--- 8. LIKE with leading wildcard — kills index performance
+-- 8. LIKE without leading wildcard
 -- ============================================================
 SELECT order_id, product_name FROM order_items
-WHERE product_description LIKE '%keyboard%';
+WHERE product_description LIKE 'keyboard%';
 
 -- ============================================================
--- 9. Sensitive data hardcoded in query
+-- 9. Sensitive data removed
 -- ============================================================
 INSERT INTO audit_log (event, detail)
-VALUES ('admin_login', 'user=admin password=Admin@123');
+VALUES ('admin_login', 'user=@username');
 
 -- ============================================================
--- 10. DROP without transaction or backup check
+-- 10. DROP with transaction and backup check
 -- ============================================================
+BEGIN TRANSACTION;
+SAVEPOINT backup_check;
 DROP TABLE IF EXISTS orders_archive_2022;
+ROLLBACK TO SAVEPOINT backup_check;
+COMMIT;
 
 -- ============================================================
--- 11. Missing index — joining on unindexed column
+-- 11. Index on joining columns
 -- ============================================================
+CREATE INDEX idx_customer_email ON customers (email);
 SELECT o.order_id, c.name, p.amount
 FROM orders o
 JOIN customers c ON o.customer_email = c.email
@@ -70,7 +76,8 @@ JOIN payments p ON o.order_id = p.order_ref
 WHERE o.status = 'completed';
 
 -- ============================================================
--- 12. Aggregate without GROUP BY safety net
+-- 12. Aggregate with GROUP BY safety net
 -- ============================================================
 SELECT customer_id, SUM(total_amount), MAX(created_at)
-FROM orders;
+FROM orders
+GROUP BY customer_id;
