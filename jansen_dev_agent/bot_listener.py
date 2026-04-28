@@ -15,6 +15,8 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, fil
 from reviewer import review_file
 from sql_reviewer import review_sql
 from meeting_processor import process_meeting
+from code_fixer import fix_file
+from github_pr import open_review_pr
 from file_processor import FileTooLargeError
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(levelname)s  %(message)s")
@@ -107,13 +109,23 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     await _send_wait(update, context, large=is_large)
 
     try:
+        # Rename temp file to original name so reviewers show the correct filename
+        named_path = str(Path(tmp_path).parent / doc.file_name)
+        Path(tmp_path).rename(named_path)
+        tmp_path = named_path
+
         if doc.file_name.endswith(".py"):
             report = await asyncio.to_thread(review_file, tmp_path)
+            await _reply(update, report)
+            fixed = await asyncio.to_thread(fix_file, tmp_path, report)
+            pr_url = await asyncio.to_thread(open_review_pr, doc.file_name, report, fixed)
+            await update.message.reply_text(f"🔗 PR opened: {pr_url}")
         elif doc.file_name.endswith(".sql"):
             report = await asyncio.to_thread(review_sql, tmp_path)
+            await _reply(update, report)
         else:
             report = await asyncio.to_thread(process_meeting, tmp_path)
-        await _reply(update, report)
+            await _reply(update, report)
     except FileTooLargeError as e:
         await update.message.reply_text(f"⚠️ {e}")
     finally:
