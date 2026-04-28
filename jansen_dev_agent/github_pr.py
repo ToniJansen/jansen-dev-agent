@@ -82,10 +82,10 @@ def open_review_pr(filename: str, review: str, fixed_code: str) -> str:
     sha = _get_branch_sha(repo, default)
     _create_branch(repo, branch, sha)
 
-    # Commit the fixed code
+    # Commit the fixed code into code_auto_reviewed/
     _put_file(
         repo,
-        path=f"demo/{filename}",
+        path=f"demo/code_auto_reviewed/{filename}",
         content=fixed_code,
         message=f"fix(agent): apply automated fixes to {filename} [{date}]",
         branch=branch,

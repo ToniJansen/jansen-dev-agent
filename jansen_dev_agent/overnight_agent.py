@@ -1,13 +1,13 @@
 from __future__ import annotations
 import logging
-import os
-import sys
+import subprocess
 from pathlib import Path
 from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).parent / ".env")
 
 from reviewer import review_file
+from sql_reviewer import review_sql
 from code_fixer import fix_file
 from github_pr import open_review_pr
 from telegram_sender import send
@@ -19,28 +19,52 @@ logging.basicConfig(
 )
 log = logging.getLogger("overnight_agent")
 
+PROJECT_ROOT = Path(__file__).parent.parent
+REVIEW_DIR   = PROJECT_ROOT / "demo" / "code_auto_reviewed"
+
+
+def _pull() -> None:
+    result = subprocess.run(
+        ["git", "pull", "--rebase"],
+        cwd=PROJECT_ROOT,
+        capture_output=True,
+        text=True,
+    )
+    log.info("git pull: %s", result.stdout.strip() or result.stderr.strip())
+
+
+def _process(target: Path) -> None:
+    log.info("Reviewing: %s", target.name)
+
+    if target.suffix == ".py":
+        report = review_file(str(target))
+    else:
+        report = review_sql(str(target))
+
+    send(report)
+    log.info("Review delivered: %s", target.name)
+
+    fixed = fix_file(str(target), report)
+    pr_url = open_review_pr(target.name, report, fixed)
+    send(f"🔗 PR: {pr_url}")
+    log.info("PR opened: %s", pr_url)
+
 
 def main() -> None:
-    target = os.environ.get("CODE_TARGET_FILE", "../demo/order_manager.py")
-    target_path = (Path(__file__).parent / target).resolve()
+    log.info("Overnight agent started.")
+    _pull()
 
-    if not target_path.exists():
-        log.error("Target file not found: %s", target_path)
-        sys.exit(1)
+    targets = sorted(REVIEW_DIR.glob("*.py")) + sorted(REVIEW_DIR.glob("*.sql"))
+    if not targets:
+        log.warning("No files found in %s", REVIEW_DIR)
+        send("⚠️ overnight_agent: no files found in code_auto_reviewed/")
+        return
 
-    log.info("Starting overnight code review: %s", target_path.name)
-    report = review_file(str(target_path))
-    send(report)
-    log.info("Code review report delivered.")
+    log.info("Found %d file(s) to review.", len(targets))
+    for target in targets:
+        _process(target)
 
-    log.info("Generating fixes...")
-    fixed_code = fix_file(str(target_path), report)
-
-    log.info("Opening GitHub PR...")
-    pr_url = open_review_pr(target_path.name, report, fixed_code)
-    send(f"🔗 PR opened: {pr_url}")
-    log.info("PR opened: %s", pr_url)
-    print(report)
+    log.info("Overnight agent complete.")
 
 
 if __name__ == "__main__":
