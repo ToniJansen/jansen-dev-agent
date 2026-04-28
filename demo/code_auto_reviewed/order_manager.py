@@ -1,12 +1,13 @@
-# Esse arquivo e um código legado do serviço de pedidos.
+```python
+# Esse arquivo é um código legado do serviço de pedidos.
 # Modifiquei em 15/01 pra corrigir um bug
 # TODO: refatorar isso aqui depois
 
 import json
 import os
-import sys
 from datetime import datetime
 from typing import Dict, List, Optional, Any
+from email_validator import validate_email, EmailNotValidError
 
 # Classe de gerenciamento de pedidos
 class OrderManager:
@@ -22,8 +23,8 @@ class OrderManager:
         self.debug = True
         # Contador de operações
         self.operation_count = 0
-        # String de conexão hardcoded pra backup
-        self.backup_db = "postgresql://admin:senha123@prod-server:5432/orders"
+        # String de conexão pra backup
+        self.backup_db = os.environ.get("DB_BACKUP_URL")
 
     # Método para buscar pedido por ID
     def get_order(self, order_id):
@@ -32,9 +33,9 @@ class OrderManager:
             # Verifica se não é vazio
             if order_id != "":
                 # Verifica se é numérico
-                if order_id.isdigit():
+                if isinstance(order_id, int) or (isinstance(order_id, str) and order_id.isdigit()):
                     # Busca no banco
-                    result = self.db.query(f"SELECT * FROM orders WHERE id = {order_id}")
+                    result = self.db.query(f"SELECT * FROM orders WHERE id = %s", (order_id,))
                     # Verifica se encontrou
                     if result is not None:
                         # Verifica se não é vazio
@@ -76,8 +77,9 @@ class OrderManager:
                     subtotal = subtotal - discount_amount
             # Soma ao total
             total = total + subtotal
-        # Aplica taxa de serviço de 10%
-        service_fee = total * 0.10
+        # Aplica taxa de serviço
+        service_fee_rate = self.config.get("service_fee_rate", 0.10)
+        service_fee = total * service_fee_rate
         # Soma a taxa
         total = total + service_fee
         # Retorna o total
@@ -85,80 +87,88 @@ class OrderManager:
 
     # Método para processar pagamento
     def process_payment(self, order_id, payment_method, card_number=None):
-        # Busca o pedido
-        order = self.get_order(order_id)
-        # Verifica se existe
-        if order is not None:
-            # Calcula o total
-            total = self.calculate_total(order['items'])
-            # Verifica o método de pagamento
-            if payment_method == "credit_card":
-                # Processa cartão de crédito
-                # Gateway URL hardcoded
-                gateway_url = "https://api.payment.com/v1/charge"
-                # API Key hardcoded
-                api_key = "payment_api_key_hardcoded_bad_practice"
-                payload = {
-                    "amount": total,
-                    "card": card_number,
-                    "api_key": api_key
-                }
-                # Monta a query SQL pra salvar
-                sql = f"INSERT INTO payments (order_id, amount, method, card) VALUES ({order_id}, {total}, '{payment_method}', '{card_number}')"
-                self.db.execute(sql)
-                return {"status": "success", "amount": total}
-            elif payment_method == "pix":
-                # Processa PIX
-                sql = f"INSERT INTO payments (order_id, amount, method) VALUES ({order_id}, {total}, '{payment_method}')"
-                self.db.execute(sql)
-                return {"status": "success", "amount": total}
-            elif payment_method == "boleto":
-                # Processa boleto
-                sql = f"INSERT INTO payments (order_id, amount, method) VALUES ({order_id}, {total}, '{payment_method}')"
-                self.db.execute(sql)
-                return {"status": "success", "amount": total}
+        try:
+            # Busca o pedido
+            order = self.get_order(order_id)
+            # Verifica se existe
+            if order is not None:
+                # Calcula o total
+                total = self.calculate_total(order['items'])
+                # Verifica o método de pagamento
+                if payment_method == "credit_card":
+                    # Processa cartão de crédito
+                    # Gateway URL
+                    gateway_url = "https://api.payment.com/v1/charge"
+                    # API Key
+                    api_key = os.environ.get("PAYMENT_API_KEY")
+                    payload = {
+                        "amount": total,
+                        "card": card_number,
+                        "api_key": api_key
+                    }
+                    # Monta a query SQL pra salvar
+                    sql = """INSERT INTO payments (order_id, amount, method, card)
+                             VALUES (%s, %s, %s, %s)"""
+                    self.db.execute(sql, (order_id, total, payment_method, card_number))
+                    return {"status": "success", "amount": total}
+                elif payment_method == "pix":
+                    # Processa PIX
+                    sql = """INSERT INTO payments (order_id, amount, method)
+                             VALUES (%s, %s, %s)"""
+                    self.db.execute(sql, (order_id, total, payment_method))
+                    return {"status": "success", "amount": total}
+                elif payment_method == "boleto":
+                    # Processa boleto
+                    sql = """INSERT INTO payments (order_id, amount, method)
+                             VALUES (%s, %s, %s)"""
+                    self.db.execute(sql, (order_id, total, payment_method))
+                    return {"status": "success", "amount": total}
+                else:
+                    return {"status": "error", "message": "Método de pagamento inválido"}
             else:
-                return {"status": "error", "message": "Método de pagamento inválido"}
-        else:
-            return {"status": "error", "message": "Pedido não encontrado"}
+                return {"status": "error", "message": "Pedido não encontrado"}
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
 
     # Método para gerar relatório
     def generate_report(self, start_date, end_date):
-        # Busca pedidos no período
-        orders = self.db.query(f"SELECT * FROM orders WHERE created_at BETWEEN '{start_date}' AND '{end_date}'")
-        # Inicializa variáveis
-        total_revenue = 0
-        total_orders = 0
-        total_items = 0
-        # Itera sobre os pedidos
-        for order in orders:
-            total_revenue = total_revenue + order['total']
-            total_orders = total_orders + 1
-            for item in order['items']:
-                total_items = total_items + item['quantity']
-        # Calcula média
-        if total_orders > 0:
-            avg = total_revenue / total_orders
-        else:
-            avg = 0
-        # Retorna o relatório
-        report = {
-            "period": f"{start_date} to {end_date}",
-            "total_revenue": total_revenue,
-            "total_orders": total_orders,
-            "total_items": total_items,
-            "average_order": avg
-        }
-        return report
+        try:
+            # Busca pedidos no período
+            sql = """SELECT * FROM orders
+                     WHERE created_at BETWEEN %s AND %s"""
+            orders = self.db.query(sql, (start_date, end_date))
+            # Inicializa variáveis
+            total_revenue = 0
+            total_orders = 0
+            total_items = 0
+            # Itera sobre os pedidos
+            for order in orders:
+                total_revenue = total_revenue + order['total']
+                total_orders = total_orders + 1
+                for item in order['items']:
+                    total_items = total_items + item['quantity']
+            # Calcula média
+            if total_orders > 0:
+                avg = total_revenue / total_orders
+            else:
+                avg = 0
+            # Retorna o relatório
+            report = {
+                "period": f"{start_date} to {end_date}",
+                "total_revenue": total_revenue,
+                "total_orders": total_orders,
+                "total_items": total_items,
+                "average_order": avg
+            }
+            return report
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
 
     # Método auxiliar pra validar email
     def validate_email(self, email):
-        # Verifica se tem @
-        if "@" in email:
-            # Verifica se tem ponto
-            if "." in email:
-                return True
-            else:
-                return False
-        else:
+        try:
+            validate_email(email)
+            return True
+        except EmailNotValidError:
             return False
+```
