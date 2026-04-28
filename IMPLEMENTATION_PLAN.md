@@ -235,6 +235,8 @@ Interactive async long-polling bot. Key design decisions:
 
 ## Task 11 — VPS Deployment (Oracle Cloud) 🔄 IN PROGRESS
 
+> **⚠️ Telegram long-polling constraint:** Only one `bot_listener.py` process can run per bot token at a time. Running it on both Mac and VPS simultaneously causes the second instance to forcibly disconnect the first. **Rule: bot_listener runs on VPS only (production).** The scheduled agents (`overnight_agent.py` and `morning_agent.py`) can run on both machines without conflict — duplicate Telegram messages are harmless. The Mac is for development and testing only.
+
 One-shot deploy script at `deploy.sh` in repo root. Sets up Ubuntu 22.04 on Oracle Cloud Always Free tier.
 
 **VM spec:** `VM.Standard.A1.Flex` — 1 OCPU, 6GB RAM, Always Free (no expiry).
