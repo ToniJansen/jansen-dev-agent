@@ -90,7 +90,8 @@ def compute(prs: list[dict], include_mock: bool = True) -> dict:
     prs_by_day: dict[str, int] = defaultdict(int)
     total_c = total_w = total_i = 0
     py_count = sql_count = 0
-    needs_fixes = approved = 0
+    needs_fixes = 0
+    merged_prs: list[dict] = []
 
     for pr in prs:
         created = pr["created_at"][:10]
@@ -107,11 +108,12 @@ def compute(prs: list[dict], include_mock: bool = True) -> dict:
         elif ft == "SQL":
             sql_count += 1
 
-        body = pr.get("body") or ""
-        if "NEEDS FIXES" in body or "❌" in body:
-            needs_fixes += 1
+        if pr.get("merged_at"):
+            merged_prs.append(pr)
         else:
-            approved += 1
+            body = pr.get("body") or ""
+            if "NEEDS FIXES" in body or "❌" in body:
+                needs_fixes += 1
 
     days_sorted = sorted(prs_by_day)
 
@@ -123,7 +125,8 @@ def compute(prs: list[dict], include_mock: bool = True) -> dict:
         "total_warning": total_w,
         "total_info": total_i,
         "needs_fixes": needs_fixes,
-        "approved": approved,
+        "approved": len(merged_prs),
+        "merged_prs": merged_prs,
         "days": days_sorted,
         "prs_per_day": [prs_by_day[d] for d in days_sorted],
         "prs": prs,
@@ -167,7 +170,12 @@ def _build_html(m: dict, repo: str) -> str:
     rows = ""
     for pr in sorted(m["prs"], key=lambda p: p["created_at"], reverse=True)[:20]:
         date = pr["created_at"][:10]
-        status = "❌ Needs fixes" if ("NEEDS FIXES" in (pr.get("body") or "") or "❌" in (pr.get("body") or "")) else "✅ Approved"
+        if pr.get("merged_at"):
+            status = "✅ Merged"
+        elif "NEEDS FIXES" in (pr.get("body") or "") or "❌" in (pr.get("body") or ""):
+            status = "❌ Needs fixes"
+        else:
+            status = "🔄 Open"
         ft = _file_type(pr["title"])
         url = pr["html_url"]
         short_title = pr["title"].replace("[Agent] ", "")[:60]
@@ -177,6 +185,22 @@ def _build_html(m: dict, repo: str) -> str:
           <td><a href="{url}" target="_blank">{short_title}</a></td>
           <td><span class="badge badge-{ft.lower()}">{ft}</span></td>
           <td>{status}</td>
+        </tr>"""
+
+    merged_rows = ""
+    for pr in sorted(m["merged_prs"], key=lambda p: p["merged_at"], reverse=True)[:20]:
+        date = pr["merged_at"][:10]
+        c, w, i = _parse_findings(pr.get("body") or "")
+        findings = f"🔴 {c}C &nbsp;🟡 {w}W &nbsp;🔵 {i}I"
+        ft = _file_type(pr["title"])
+        url = pr["html_url"]
+        short_title = pr["title"].replace("[Agent] ", "")[:55]
+        merged_rows += f"""
+        <tr>
+          <td>{date}</td>
+          <td><a href="{url}" target="_blank">{short_title}</a></td>
+          <td><span class="badge badge-{ft.lower()}">{ft}</span></td>
+          <td style="font-size:.8rem">{findings}</td>
         </tr>"""
 
     return f"""<!DOCTYPE html>
@@ -271,7 +295,15 @@ def _build_html(m: dict, repo: str) -> str:
   </div>
 
   <div class="section">
-    <h2>Recent PRs</h2>
+    <h2>Fixes Applied — Merged PRs ✅</h2>
+    <table>
+      <thead><tr><th>Merged</th><th>File</th><th>Type</th><th>Issues Fixed</th></tr></thead>
+      <tbody>{merged_rows}</tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>All Recent PRs</h2>
     <table>
       <thead><tr><th>Date</th><th>PR</th><th>Type</th><th>Status</th></tr></thead>
       <tbody>{rows}</tbody>
