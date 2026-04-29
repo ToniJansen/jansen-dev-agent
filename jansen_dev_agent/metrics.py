@@ -161,7 +161,7 @@ def _build_html(m: dict, repo: str) -> str:
     h1 {{ font-size: 1.6rem; font-weight: 700; margin-bottom: .25rem; }}
     .sub {{ color: #8b949e; font-size: .9rem; margin-bottom: 2rem; }}
     .cards {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-              gap: 1rem; margin-bottom: 2rem; }}
+              gap: 1rem; margin-bottom: 2rem; page-break-inside: avoid; }}
     .card {{ background: #161b22; border: 1px solid #30363d; border-radius: 10px;
              padding: 1.25rem; text-align: center; }}
     .card .val {{ font-size: 2.4rem; font-weight: 800; line-height: 1; }}
@@ -173,7 +173,7 @@ def _build_html(m: dict, repo: str) -> str:
     .green {{ color: #3fb950; }}
     .white {{ color: #e6edf3; }}
     .section {{ background: #161b22; border: 1px solid #30363d; border-radius: 10px;
-                padding: 1.5rem; margin-bottom: 2rem; }}
+                padding: 1.5rem; margin-bottom: 2rem; page-break-inside: avoid; }}
     .section h2 {{ font-size: 1rem; font-weight: 600; margin-bottom: 1.25rem;
                    color: #8b949e; text-transform: uppercase; letter-spacing: .08em; }}
     .chart-wrap {{ max-width: 700px; }}
