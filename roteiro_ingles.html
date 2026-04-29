@@ -647,8 +647,33 @@ Keep each file under 20 lines. No comments. Use the exact filenames above.</text
   let elapsed = 0;
   let running = false;
   let interval = null;
-  const WARN_AT = 6 * 60;
-  const OVER_AT = 8 * 60;
+  const WARN_AT  = 6 * 60;
+  const OVER_AT  = 8 * 60;
+  const DROP_AT  = 7 * 60;   // 1 min warning before 8 min limit
+  let droppedPlayed = false;
+
+  function playDrop() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const gain = ctx.createGain();
+      gain.connect(ctx.destination);
+
+      // two soft sine tones — a falling "drip" shape
+      [0, 0.12].forEach((delay, i) => {
+        const osc = ctx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(i === 0 ? 880 : 660, ctx.currentTime + delay);
+        osc.frequency.exponentialRampToValueAtTime(i === 0 ? 440 : 330, ctx.currentTime + delay + 0.18);
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.35, ctx.currentTime + delay);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.25);
+        osc.connect(g);
+        g.connect(ctx.destination);
+        osc.start(ctx.currentTime + delay);
+        osc.stop(ctx.currentTime + delay + 0.3);
+      });
+    } catch (e) {}
+  }
 
   function fmt(s) {
     const m = Math.floor(s / 60);
@@ -662,6 +687,10 @@ Keep each file under 20 lines. No comments. Use the exact filenames above.</text
     el.textContent = fmt(elapsed);
     el.className = 'timer-display' +
       (elapsed >= OVER_AT ? ' over' : elapsed >= WARN_AT ? ' warn' : '');
+    if (elapsed === DROP_AT && !droppedPlayed) {
+      droppedPlayed = true;
+      playDrop();
+    }
   }
 
   function toggleTimer() {
@@ -687,6 +716,7 @@ Keep each file under 20 lines. No comments. Use the exact filenames above.</text
     document.getElementById('timer').className = 'timer-display';
     document.getElementById('sw-btn').textContent = '▶ Start';
     document.getElementById('sw-btn').className = 'sw-btn start';
+    droppedPlayed = false;
   }
 
   /* ── Sections ── */
