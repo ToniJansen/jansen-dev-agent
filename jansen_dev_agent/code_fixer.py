@@ -1,7 +1,6 @@
 from __future__ import annotations
-import os
 from pathlib import Path
-from groq import Groq
+from groq_client import groq_complete
 from file_processor import prepare, wrap_for_llm, FileTooLargeError
 
 _SYSTEM_PYTHON = """\
@@ -42,10 +41,7 @@ def fix_file(file_path: str, review: str) -> str:
     except FileTooLargeError:
         return Path(file_path).read_text(encoding="utf-8")
 
-    client = Groq(api_key=os.environ["GROQ_API_KEY"])
-    response = client.chat.completions.create(
-        model=os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile"),
-        max_tokens=4096,
+    return groq_complete(
         messages=[
             {"role": "system", "content": system},
             {"role": "user", "content": (
@@ -53,5 +49,5 @@ def fix_file(file_path: str, review: str) -> str:
                 f"Now fix the file:\n\n{wrap_for_llm(content, label=label)}"
             )},
         ],
+        max_tokens=4096,
     )
-    return response.choices[0].message.content

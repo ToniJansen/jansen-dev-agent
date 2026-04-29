@@ -1,7 +1,6 @@
 from __future__ import annotations
-import os
-from groq import Groq
 from file_processor import wrap_for_llm
+from groq_client import groq_complete
 
 _SYSTEM = """\
 You are @jansen_dev_agent_bot — an autonomous developer agent running 24/7.
@@ -40,14 +39,10 @@ Rules for both formats: no markdown headers, no bold/italic, no greetings like "
 def greet(text: str) -> str:
     """Detect the user's language and introduce the bot in that language."""
     safe_input = wrap_for_llm(text, label="message")
-    client = Groq(api_key=os.environ["GROQ_API_KEY"])
-    response = client.chat.completions.create(
-        model=os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile"),
-        max_tokens=350,
-        temperature=0.4,
+    return groq_complete(
         messages=[
             {"role": "system", "content": _SYSTEM},
             {"role": "user", "content": safe_input},
         ],
+        max_tokens=350,
     )
-    return response.choices[0].message.content

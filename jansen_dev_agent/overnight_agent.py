@@ -1,6 +1,7 @@
 from __future__ import annotations
 import logging
 import os
+import shutil
 import subprocess
 import tempfile
 import time
@@ -104,6 +105,11 @@ def _process(target: Path) -> None:
     else:
         send(f"🔴 *{target.name}* — needs triage. PR open for review.\n🔗 {pr_url}")
         log.info("Needs triage: %s", pr_url)
+
+    processed_dir = target.parent / "processed"
+    processed_dir.mkdir(parents=True, exist_ok=True)
+    shutil.move(str(target), str(processed_dir / target.name))
+    log.info("Archived: %s → processed/", target.name)
 
 
 def main() -> None:

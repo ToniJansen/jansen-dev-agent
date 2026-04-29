@@ -302,6 +302,34 @@
     <div style="font-size:.7rem;color:#475569;text-align:center;margin-top:.4rem;">Click to open full size</div>
   </div>
 
+  <!-- ── Input Channels ── -->
+  <div style="background:#0f1e35;border:1.5px solid #1e3a5f;border-radius:14px;padding:1.1rem 1.25rem;margin-bottom:1.25rem;">
+    <div style="font-size:.7rem;font-weight:800;color:#3b82f6;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.75rem;">Input Channels — How files reach the agents</div>
+
+    <div style="display:flex;flex-direction:column;gap:.65rem;">
+
+      <div style="background:#0a1628;border:1px solid #1e3a5f;border-radius:10px;padding:.75rem 1rem;">
+        <div style="font-size:.8rem;font-weight:700;color:#f1f5f9;margin-bottom:.25rem;">🤖 Telegram Bot — on demand, 24/7</div>
+        <div style="font-size:.8rem;color:#94a3b8;line-height:1.55;">User sends a file <strong style="color:#cbd5e1;">directly in the chat</strong> → instant analysis → reply in the same chat. <strong style="color:#cbd5e1;">No folders involved.</strong></div>
+      </div>
+
+      <div style="background:#0a1628;border:1px solid #1e3a5f;border-radius:10px;padding:.75rem 1rem;">
+        <div style="font-size:.8rem;font-weight:700;color:#f1f5f9;margin-bottom:.35rem;">⏰ Scheduled Agents — files dropped in a folder, processed automatically</div>
+        <div style="display:flex;flex-direction:column;gap:.2rem;">
+          <div style="font-size:.8rem;color:#94a3b8;"><span style="font-family:'SF Mono','Fira Code',monospace;background:#131f30;padding:.1rem .4rem;border-radius:4px;color:#7dd3fc;">code_auto_reviewed/</span> → <strong style="color:#cbd5e1;">overnight_agent</strong> at 02:00 — code review + GitHub PR</div>
+          <div style="font-size:.8rem;color:#94a3b8;"><span style="font-family:'SF Mono','Fira Code',monospace;background:#131f30;padding:.1rem .4rem;border-radius:4px;color:#7dd3fc;">meetings/</span> → <strong style="color:#cbd5e1;">morning_agent</strong> at 07:00 — meeting summary → Telegram</div>
+        </div>
+        <div style="margin-top:.4rem;font-size:.78rem;color:#64748b;">After processing, each file is automatically moved to <span style="font-family:'SF Mono','Fira Code',monospace;background:#131f30;padding:.1rem .35rem;border-radius:4px;">processed/</span> — queue stays clean.</div>
+      </div>
+
+      <div style="background:#0a1628;border:1px solid #1e3a5f;border-radius:10px;padding:.75rem 1rem;">
+        <div style="font-size:.8rem;font-weight:700;color:#f1f5f9;margin-bottom:.25rem;">📁 mocks/ — example files only</div>
+        <div style="font-size:.8rem;color:#94a3b8;line-height:1.55;">Not consumed by any agent. Use them to demo the bot (send via Telegram) or as templates to drop into the queues.</div>
+      </div>
+
+    </div>
+  </div>
+
   <!-- ── Demo Prep ── -->
   <div class="section s-yellow" id="sec-prep">
     <div class="sec-header" onclick="toggleSec('sec-prep')">
@@ -419,6 +447,47 @@ Keep each file under 20 lines. No comments. Use the exact filenames above.</text
         <input class="step-cb" type="checkbox"/>
         <div class="step-body">
           <div class="step-top">
+            <div class="step-title">Live demo prompts — say these on camera, Claude generates the files</div>
+            <span class="step-time t-yellow">on air</span>
+          </div>
+          <div class="story">Say each prompt naturally on camera. Claude Code SSHes into the VPS, generates the file, and drops it in the right folder — you show the ls output, then run the agent. Option 2 approach.</div>
+
+          <div style="margin-top:.6rem;font-size:.78rem;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.07em;">Morning Agent — meeting notes</div>
+          <div style="margin-top:.35rem;position:relative;">
+            <textarea id="prompt-morning" readonly onclick="this.select()"
+              style="width:100%;min-height:72px;background:#0a1628;border:1px solid #3b82f6;border-radius:8px;
+                     color:#bae6fd;font-family:'SF Mono','Fira Code',monospace;font-size:.75rem;
+                     padding:.65rem .8rem;resize:none;line-height:1.55;cursor:text;"
+>Claude, generate a meeting notes file from today's standup about the new deploy pipeline strategy and save it directly to the meetings folder on the VPS</textarea>
+            <button onclick="navigator.clipboard.writeText(document.getElementById('prompt-morning').value)"
+              style="position:absolute;top:.5rem;right:.5rem;
+                     padding:.25rem .6rem;background:#0f2040;border:1px solid #3b82f6;
+                     border-radius:5px;color:#93c5fd;font-size:.72rem;cursor:pointer;">
+              Copy
+            </button>
+          </div>
+
+          <div style="margin-top:.75rem;font-size:.78rem;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.07em;">Overnight Agent — code review</div>
+          <div style="margin-top:.35rem;position:relative;">
+            <textarea id="prompt-overnight" readonly onclick="this.select()"
+              style="width:100%;min-height:72px;background:#0a1628;border:1px solid #3b82f6;border-radius:8px;
+                     color:#bae6fd;font-family:'SF Mono','Fira Code',monospace;font-size:.75rem;
+                     padding:.65rem .8rem;resize:none;line-height:1.55;cursor:text;"
+>Claude, generate a Python authentication module with some security vulnerabilities and drop it into the code review folder on the VPS — I want to run the overnight agent on it</textarea>
+            <button onclick="navigator.clipboard.writeText(document.getElementById('prompt-overnight').value)"
+              style="position:absolute;top:.5rem;right:.5rem;
+                     padding:.25rem .6rem;background:#0f2040;border:1px solid #3b82f6;
+                     border-radius:5px;color:#93c5fd;font-size:.72rem;cursor:pointer;">
+              Copy
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="step" onclick="toggleStep(this)">
+        <input class="step-cb" type="checkbox"/>
+        <div class="step-body">
+          <div class="step-top">
             <div class="step-title">Commands — run agents on VPS during the demo</div>
             <span class="step-time t-yellow">ref</span>
           </div>
@@ -457,11 +526,10 @@ Keep each file under 20 lines. No comments. Use the exact filenames above.</text
         <input class="step-cb" type="checkbox"/>
         <div class="step-body">
           <div class="step-top">
-            <div class="step-title">Say the opening phrase — look at camera, not screen</div>
+            <div class="step-title">Opening phrase — look at camera</div>
             <span class="step-time t-yellow">15s</span>
           </div>
-          <div class="story">You set the tone before anything appears on screen. This one sentence tells Jedo exactly what kind of leader you are.</div>
-          <div class="quote-block">"My engineers haven't written implementation code in months. Agents do that. I'm going to show you the system running right now — and how I stay in control through triage."</div>
+          <div class="quote-block">"My engineers haven't written implementation code in months — I'm showing you the system live, and how I stay in control through triage."</div>
         </div>
       </div>
     </div>
@@ -486,9 +554,7 @@ Keep each file under 20 lines. No comments. Use the exact filenames above.</text
             <div class="step-title">Open VPS terminal → run overnight log</div>
             <span class="step-time t-blue">~30s</span>
           </div>
-          <div class="story">This is your proof. A server that ran autonomously at 2 AM — you're showing the raw evidence before any GitHub UI.</div>
-          <div class="action-block">ssh root@137.184.60.205</div>
-          <div class="action-block" style="margin-top:.3rem">tail -80 /tmp/jansen_overnight.log</div>
+          <div class="quote-block">"Here's the overnight log — this ran autonomously at 2 AM, zero human intervention."</div>
         </div>
       </div>
 
@@ -499,8 +565,7 @@ Keep each file under 20 lines. No comments. Use the exact filenames above.</text
             <div class="step-title">Walk through each log line — point as you speak</div>
             <span class="step-time t-blue">~30s</span>
           </div>
-          <div class="story">Each line in the log is a step the agent took on its own. You're narrating a pipeline that ran while you were sleeping.</div>
-          <div class="quote-block">"It pulled code → reviewed → ran tests → applied fixes → ran tests again → opened PR. While I was asleep. Zero human intervention."</div>
+          <div class="quote-block">"It pulled code, reviewed it, ran tests, applied fixes, ran tests again, opened the PR — while I was asleep."</div>
         </div>
       </div>
 
@@ -511,9 +576,8 @@ Keep each file under 20 lines. No comments. Use the exact filenames above.</text
             <div class="step-title">Open GitHub → all agent PRs</div>
             <span class="step-time t-blue">~20s</span>
           </div>
-          <div class="story">Now you move from the terminal to GitHub. Every PR here is physical evidence that the agent shipped real work.</div>
-          <a class="inline-link" href="https://github.com/ToniJansen/jansen-dev-agent/pulls?q=is%3Apr+%5BAgent%5D" target="_blank">→ github.com/ToniJansen/jansen-dev-agent — All [Agent] PRs</a>
-          <div class="quote-block">"Every single one of these PRs was opened by the agent. I did not write a single line of this code."</div>
+          <a class="inline-link" href="https://github.com/ToniJansen/jansen-dev-agent/pulls?q=is%3Apr+%5BAgent%5D" target="_blank">→ All [Agent] PRs</a>
+          <div class="quote-block">"Every one of these PRs was opened by the agent — I didn't write a single line of this code."</div>
         </div>
       </div>
 
@@ -524,7 +588,6 @@ Keep each file under 20 lines. No comments. Use the exact filenames above.</text
             <div class="step-title">Click an ✅ APPROVED auto-merged PR</div>
             <span class="step-time t-blue">~20s</span>
           </div>
-          <div class="story">When a PR merges with zero human review, that's the system working as designed — not a risk, an achievement.</div>
           <a class="inline-link" href="https://github.com/ToniJansen/jansen-dev-agent/pulls?q=is%3Apr+is%3Aclosed+%5BAgent%5D" target="_blank">→ Closed/merged PRs — pick one marked ✅ APPROVED</a>
           <div class="quote-block">"Clean — no critical issues, tests passed, merged automatically. No one reviewed it."</div>
         </div>
@@ -537,7 +600,6 @@ Keep each file under 20 lines. No comments. Use the exact filenames above.</text
             <div class="step-title">Navigate to a ❌ NEEDS FIXES PR — bridge into Section 2</div>
             <span class="step-time t-blue">~10s</span>
           </div>
-          <div class="story">The flagged PR is your transition into the control layer. This is where you prove you're not just running the agent — you're accountable for what ships.</div>
           <a class="inline-link" href="https://github.com/ToniJansen/jansen-dev-agent/pulls?q=is%3Apr+is%3Aopen+%5BAgent%5D" target="_blank">→ Open PRs — pick one marked ❌ NEEDS FIXES</a>
           <div class="quote-block">"This one was flagged. Let me show you what triage looks like."</div>
         </div>
@@ -565,8 +627,7 @@ Keep each file under 20 lines. No comments. Use the exact filenames above.</text
             <div class="step-title">Set the frame</div>
             <span class="step-time t-red">~20s</span>
           </div>
-          <div class="story">Before touching anything, you define your role clearly. You're not the coder here — you're the one who decides if the agent's work is safe to ship.</div>
-          <div class="quote-block">"Now I do triage. The agent flagged this PR. My job: did it find the right problems, and did it fix them correctly?"</div>
+          <div class="quote-block">"My job now: did the agent find the right problems, and did it fix them correctly?"</div>
         </div>
       </div>
 
@@ -574,10 +635,9 @@ Keep each file under 20 lines. No comments. Use the exact filenames above.</text
         <input class="step-cb" type="checkbox"/>
         <div class="step-body">
           <div class="step-top">
-            <div class="step-title">Scroll to 🔴🟡🔵 findings — read each line number + why it's dangerous</div>
+            <div class="step-title">Scroll to 🔴🟡🔵 findings — read each line number</div>
             <span class="step-time t-red">~90s</span>
           </div>
-          <div class="story">The findings block is the agent's report card. You're not reading it passively — you're verifying its reasoning, line by line.</div>
           <div class="quote-block">"Line [X] — [issue]. This is a real security vulnerability, not a style suggestion."</div>
         </div>
       </div>
@@ -586,11 +646,10 @@ Keep each file under 20 lines. No comments. Use the exact filenames above.</text
         <input class="step-cb" type="checkbox"/>
         <div class="step-body">
           <div class="step-top">
-            <div class="step-title">Click "Files changed" → read the diff on camera, don't rush</div>
+            <div class="step-title">Click "Files changed" → read the diff on camera</div>
             <span class="step-time t-red">~60s</span>
           </div>
-          <div class="story">A report is easy to generate. A fix that actually works is not. This is the moment you separate AI-assisted from AI-dependent.</div>
-          <div class="quote-block">"The agent didn't just report the problem — it rewrote the code. I'm checking: does this fix actually solve it, or did the agent hallucinate something?"</div>
+          <div class="quote-block">"The agent didn't just report the problem — it rewrote the code. I'm checking: does this fix actually solve it?"</div>
         </div>
       </div>
 
@@ -601,9 +660,7 @@ Keep each file under 20 lines. No comments. Use the exact filenames above.</text
             <div class="step-title">Pause — deliver the judgment</div>
             <span class="step-time t-red">~20s</span>
           </div>
-          <div class="story">The pause is intentional. Jedo needs to see you thinking, not rubber-stamping. Human judgment on camera.</div>
-          <div class="quote-block">"This is where human judgment matters."</div>
-          <div class="quote-block" style="margin-top:.35rem">"This is correct. The agent solved it properly."</div>
+          <div class="quote-block">"This is correct. The agent solved it properly."</div>
         </div>
       </div>
 
@@ -614,8 +671,7 @@ Keep each file under 20 lines. No comments. Use the exact filenames above.</text
             <div class="step-title">Back to PR description → pytest output block</div>
             <span class="step-time t-red">~30s</span>
           </div>
-          <div class="story">The tests are your proof of correctness. Not "it looks right" — it passed. The agent verified its own work.</div>
-          <div class="quote-block">"Before: [N] tests failing — exactly the issues it found. After: all passing. The fix is verified, not assumed."</div>
+          <div class="quote-block">"Before: [N] tests failing. After: all passing. The fix is verified, not assumed."</div>
         </div>
       </div>
 
@@ -641,7 +697,6 @@ Keep each file under 20 lines. No comments. Use the exact filenames above.</text
             <div class="step-title">Open Telegram → @jansen_dev_agent_bot → /report</div>
             <span class="step-time t-green">~20s</span>
           </div>
-          <div class="story">You're generating live data in front of them — not a pre-made slide. This is the dashboard you actually use to manage the system.</div>
           <a class="inline-link" href="https://t.me/jansen_dev_agent_bot" target="_blank">→ t.me/jansen_dev_agent_bot — type /report, wait ~15s for PDF</a>
           <div class="quote-block">"Live metrics dashboard — straight from GitHub API, no manual data."</div>
         </div>
@@ -654,7 +709,6 @@ Keep each file under 20 lines. No comments. Use the exact filenames above.</text
             <div class="step-title">Open PDF → Before vs. After section</div>
             <span class="step-time t-green">~20s</span>
           </div>
-          <div class="story">The before/after is your headline metric. Zero to fully automated in weeks. That's the business impact of running agents in production.</div>
           <div class="quote-block">"Before: zero automated reviews per week. After: all of these PRs — zero human effort."</div>
         </div>
       </div>
@@ -666,7 +720,6 @@ Keep each file under 20 lines. No comments. Use the exact filenames above.</text
             <div class="step-title">Point to status tables</div>
             <span class="step-time t-green">~20s</span>
           </div>
-          <div class="story">This is operational control. What needs attention, what's in flight, what's done — without touching a single file manually.</div>
           <div class="quote-block">"This is my triage queue. I don't chase files — the agent surfaces what matters."</div>
         </div>
       </div>
@@ -678,7 +731,6 @@ Keep each file under 20 lines. No comments. Use the exact filenames above.</text
             <div class="step-title">Close strong — look at camera</div>
             <span class="step-time t-green">~20s</span>
           </div>
-          <div class="story">End with the same frame you opened with. Agents implement, you own quality — let that be the last thing Jedo hears.</div>
           <div class="quote-block">"Agents implement. I own the quality. Live system, real PRs, real tests. Happy to go deeper in a call."</div>
         </div>
       </div>
