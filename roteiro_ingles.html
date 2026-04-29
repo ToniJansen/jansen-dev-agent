@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Loom Script — Jido Demo</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface2: #131f30;
+      --border: #334155;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --dim: #64748b;
+      --blue: #3b82f6;
+      --blue-bg: #0a1628;
+      --blue-light: #93c5fd;
+      --red: #ef4444;
+      --red-bg: #1a0a0a;
+      --red-light: #fca5a5;
+      --green: #22c55e;
+      --green-bg: #0d1f0d;
+      --green-light: #86efac;
+      --yellow: #f59e0b;
+      --yellow-bg: #1c1000;
+      --yellow-light: #fde68a;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 16px;
+      line-height: 1.6;
+      padding-bottom: 3rem;
+    }
+
+    /* ── Sticky header ── */
+    .header {
+      background: var(--surface);
+      border-bottom: 2px solid var(--border);
+      padding: .75rem 1.25rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .header-title {
+      font-size: .95rem;
+      font-weight: 800;
+      color: #f8fafc;
+      white-space: nowrap;
+    }
+    .header-sub {
+      font-size: .75rem;
+      color: var(--muted);
+      margin-top: .1rem;
+    }
+
+    /* Stopwatch */
+    .stopwatch {
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      flex-shrink: 0;
+    }
+    .timer-display {
+      font-family: "SF Mono", "Fira Code", monospace;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #f8fafc;
+      letter-spacing: .04em;
+      min-width: 72px;
+      text-align: right;
+    }
+    .timer-display.warn  { color: var(--yellow); }
+    .timer-display.over  { color: var(--red); animation: blink 1s step-start infinite; }
+    @keyframes blink { 50% { opacity: .4; } }
+
+    .sw-btn {
+      padding: .35rem .8rem;
+      border-radius: 7px;
+      border: 1.5px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-size: .8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s;
+      white-space: nowrap;
+    }
+    .sw-btn:hover { background: #263348; }
+    .sw-btn.start { border-color: var(--green); color: var(--green-light); }
+    .sw-btn.stop  { border-color: var(--red);   color: var(--red-light); }
+    .sw-btn.reset { border-color: var(--border); color: var(--dim); font-size: .72rem; }
+
+    /* Progress bar */
+    .prog-wrap { margin-top: .6rem; display: flex; align-items: center; gap: .75rem; }
+    .prog-bar {
+      flex: 1; height: 5px; background: var(--border);
+      border-radius: 99px; overflow: hidden;
+    }
+    .prog-fill {
+      height: 100%; background: var(--green);
+      border-radius: 99px; transition: width .3s ease; width: 0%;
+    }
+    .prog-label { font-size: .72rem; color: var(--dim); white-space: nowrap; }
+
+    /* ── Container ── */
+    .container { max-width: 700px; margin: 0 auto; padding: 1.25rem 1rem; }
+
+    /* ── Links card ── */
+    .links-card {
+      background: var(--blue-bg);
+      border: 1.5px solid #1e3a5f;
+      border-radius: 14px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+    .links-card h2 {
+      font-size: .72rem; font-weight: 800; color: var(--blue);
+      text-transform: uppercase; letter-spacing: .1em; margin-bottom: .7rem;
+    }
+    .link-row {
+      display: flex; align-items: center; gap: .75rem;
+      padding: .38rem 0; border-bottom: 1px solid #1e3a5f;
+    }
+    .link-row:last-child { border-bottom: none; }
+    .link-lbl { font-size: .75rem; color: var(--dim); min-width: 52px; flex-shrink: 0; }
+    .link-row a { color: var(--blue-light); font-size: .88rem; text-decoration: none; word-break: break-all; }
+    .link-row a:hover { text-decoration: underline; }
+    .cmd {
+      font-family: "SF Mono", "Fira Code", monospace;
+      background: var(--surface); color: #7dd3fc;
+      font-size: .78rem; padding: .15rem .5rem; border-radius: 5px; user-select: all;
+    }
+
+    /* ── Section ── */
+    .section {
+      border-radius: 14px; margin-bottom: 1rem;
+      overflow: hidden; border: 1.5px solid var(--border);
+    }
+    .section.s-blue   { border-color: var(--blue); }
+    .section.s-red    { border-color: var(--red); }
+    .section.s-green  { border-color: var(--green); }
+    .section.s-yellow { border-color: #d97706; }
+
+    .sec-header {
+      display: flex; align-items: center; gap: .75rem;
+      padding: .95rem 1.25rem; cursor: pointer; user-select: none;
+      background: var(--surface); transition: background .15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .sec-header:hover { background: #263348; }
+
+    .sec-icon  { font-size: 1.3rem; flex-shrink: 0; }
+    .sec-info  { flex: 1; min-width: 0; }
+    .sec-title { font-size: 1rem; font-weight: 700; color: #f1f5f9; }
+    .sec-sub   { font-size: .78rem; color: var(--muted); margin-top: .1rem; }
+    .sec-arrow { font-size: .72rem; color: var(--dim); transition: transform .2s; flex-shrink: 0; }
+    .sec-header.open .sec-arrow { transform: rotate(90deg); }
+
+    .sec-body { display: none; background: var(--surface2); }
+    .sec-body.open { display: block; }
+
+    /* ── Step ── */
+    .step {
+      display: flex; align-items: flex-start; gap: .85rem;
+      padding: .9rem 1.25rem; border-top: 1px solid var(--border);
+      cursor: pointer; transition: background .12s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .step:hover { background: #0f1a2b; }
+    .step.done  { opacity: .4; }
+    .step.done .step-title { text-decoration: line-through; color: var(--dim); }
+
+    .step-cb {
+      width: 22px; height: 22px; flex-shrink: 0;
+      accent-color: var(--green); cursor: pointer; margin-top: .15rem;
+    }
+    .step-body  { flex: 1; min-width: 0; }
+    .step-top   { display: flex; align-items: baseline; justify-content: space-between; gap: .5rem; }
+    .step-title { font-size: .93rem; font-weight: 600; color: #f1f5f9; line-height: 1.4; }
+    .step-time  {
+      font-size: .7rem; font-weight: 700; white-space: nowrap; flex-shrink: 0;
+      padding: .1rem .45rem; border-radius: 99px; border: 1px solid;
+    }
+    .t-blue   { color: var(--blue-light);   border-color: var(--blue);   background: var(--blue-bg); }
+    .t-red    { color: var(--red-light);    border-color: var(--red);    background: var(--red-bg); }
+    .t-green  { color: var(--green-light);  border-color: var(--green);  background: var(--green-bg); }
+    .t-yellow { color: var(--yellow-light); border-color: var(--yellow); background: var(--yellow-bg); }
+
+    .step-note { font-size: .8rem; color: var(--muted); margin-top: .2rem; }
+
+    .quote-block {
+      background: var(--blue-bg); border-left: 3px solid var(--blue);
+      border-radius: 0 8px 8px 0; padding: .6rem .9rem; margin-top: .4rem;
+      font-size: .85rem; color: #bae6fd; font-style: italic; line-height: 1.5;
+    }
+    .action-block {
+      font-family: "SF Mono", "Fira Code", monospace;
+      background: var(--yellow-bg); border-left: 3px solid var(--yellow);
+      border-radius: 0 8px 8px 0; padding: .45rem .9rem; margin-top: .4rem;
+      font-size: .8rem; color: var(--yellow-light);
+    }
+    .inline-link {
+      display: block;
+      margin-top: .4rem;
+      padding: .5rem .85rem;
+      background: #0a1628;
+      border: 1px solid var(--blue);
+      border-radius: 8px;
+      color: var(--blue-light);
+      font-size: .88rem;
+      text-decoration: none;
+      font-weight: 600;
+      transition: background .15s;
+    }
+    .inline-link:hover { background: #0f2040; }
+    .story {
+      font-size: .82rem;
+      color: #a78bfa;
+      font-style: italic;
+      margin-bottom: .35rem;
+      line-height: 1.45;
+      padding-left: .1rem;
+    }
+
+    /* ── Reset ── */
+    .reset-btn {
+      display: block; width: 100%; padding: .8rem;
+      background: var(--surface); color: var(--dim);
+      border: 1.5px solid var(--border); border-radius: 10px;
+      font-size: .88rem; cursor: pointer; text-align: center;
+      transition: background .15s; margin-top: 1.25rem;
+    }
+    .reset-btn:hover { background: #263348; color: var(--muted); }
+
+    @media (max-width: 480px) {
+      .header-title { font-size: .85rem; }
+      .timer-display { font-size: 1.25rem; }
+      .step { padding: .8rem 1rem; }
+      .sec-header { padding: .85rem 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Sticky Header ── -->
+<div class="header">
+  <div class="header-row">
+    <div>
+      <div class="header-title">jansen_dev_agent — Loom Script</div>
+      <div class="header-sub">Jido (CTO) via Henry &nbsp;·&nbsp; 6–8 min max</div>
+    </div>
+    <div class="stopwatch">
+      <div class="timer-display" id="timer">0:00</div>
+      <button class="sw-btn start" id="sw-btn" onclick="toggleTimer()">▶ Start</button>
+      <button class="sw-btn reset" onclick="resetTimer()">Reset</button>
+    </div>
+  </div>
+  <div class="prog-wrap">
+    <div class="prog-bar"><div class="prog-fill" id="prog-fill"></div></div>
+    <div class="prog-label" id="prog-label">0 / 0</div>
+  </div>
+</div>
+
+<div class="container">
+
+
+  <!-- ── Opening ── -->
+  <div class="section s-yellow" id="sec-open">
+    <div class="sec-header open" onclick="toggleSec('sec-open')">
+      <span class="sec-icon">🎬</span>
+      <div class="sec-info">
+        <div class="sec-title">Opening</div>
+        <div class="sec-sub">No screen share yet</div>
+      </div>
+      <span class="sec-arrow">▶</span>
+    </div>
+    <div class="sec-body open" id="body-open">
+      <div class="step" onclick="toggleStep(this)">
+        <input class="step-cb" type="checkbox"/>
+        <div class="step-body">
+          <div class="step-top">
+            <div class="step-title">Say the opening phrase — look at camera, not screen</div>
+            <span class="step-time t-yellow">15s</span>
+          </div>
+          <div class="story">You set the tone before anything appears on screen. This one sentence tells Jido exactly what kind of leader you are.</div>
+          <div class="quote-block">"My engineers haven't written implementation code in months. Agents do that. I'm going to show you the system running right now — and how I stay in control through triage."</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Section 1 ── -->
+  <div class="section s-blue" id="sec-1">
+    <div class="sec-header open" onclick="toggleSec('sec-1')">
+      <span class="sec-icon">🖥️</span>
+      <div class="sec-info">
+        <div class="sec-title">Section 1 — Agent working overnight</div>
+        <div class="sec-sub">VPS terminal → GitHub PRs</div>
+      </div>
+      <span class="sec-arrow">▶</span>
+    </div>
+    <div class="sec-body open" id="body-1">
+
+      <div class="step" onclick="toggleStep(this)">
+        <input class="step-cb" type="checkbox"/>
+        <div class="step-body">
+          <div class="step-top">
+            <div class="step-title">Open VPS terminal → run overnight log</div>
+            <span class="step-time t-blue">~30s</span>
+          </div>
+          <div class="story">This is your proof. A server that ran autonomously at 2 AM — you're showing the raw evidence before any GitHub UI.</div>
+          <div class="action-block">ssh root@137.184.60.205</div>
+          <div class="action-block" style="margin-top:.3rem">tail -80 /tmp/jansen_overnight.log</div>
+        </div>
+      </div>
+
+      <div class="step" onclick="toggleStep(this)">
+        <input class="step-cb" type="checkbox"/>
+        <div class="step-body">
+          <div class="step-top">
+            <div class="step-title">Walk through each log line — point as you speak</div>
+            <span class="step-time t-blue">~30s</span>
+          </div>
+          <div class="story">Each line in the log is a step the agent took on its own. You're narrating a pipeline that ran while you were sleeping.</div>
+          <div class="quote-block">"It pulled code → reviewed → ran tests → applied fixes → ran tests again → opened PR. While I was asleep. Zero human intervention."</div>
+        </div>
+      </div>
+
+      <div class="step" onclick="toggleStep(this)">
+        <input class="step-cb" type="checkbox"/>
+        <div class="step-body">
+          <div class="step-top">
+            <div class="step-title">Open GitHub → all agent PRs</div>
+            <span class="step-time t-blue">~20s</span>
+          </div>
+          <div class="story">Now you move from the terminal to GitHub. Every PR here is physical evidence that the agent shipped real work.</div>
+          <a class="inline-link" href="https://github.com/ToniJansen/jansen-dev-agent/pulls?q=is%3Apr+%5BAgent%5D" target="_blank">→ github.com/ToniJansen/jansen-dev-agent — All [Agent] PRs</a>
+          <div class="quote-block">"Every single one of these PRs was opened by the agent. I did not write a single line of this code."</div>
+        </div>
+      </div>
+
+      <div class="step" onclick="toggleStep(this)">
+        <input class="step-cb" type="checkbox"/>
+        <div class="step-body">
+          <div class="step-top">
+            <div class="step-title">Click an ✅ APPROVED auto-merged PR</div>
+            <span class="step-time t-blue">~20s</span>
+          </div>
+          <div class="story">When a PR merges with zero human review, that's the system working as designed — not a risk, an achievement.</div>
+          <a class="inline-link" href="https://github.com/ToniJansen/jansen-dev-agent/pulls?q=is%3Apr+is%3Aclosed+%5BAgent%5D" target="_blank">→ Closed/merged PRs — pick one marked ✅ APPROVED</a>
+          <div class="quote-block">"Clean — no critical issues, tests passed, merged automatically. No one reviewed it."</div>
+        </div>
+      </div>
+
+      <div class="step" onclick="toggleStep(this)">
+        <input class="step-cb" type="checkbox"/>
+        <div class="step-body">
+          <div class="step-top">
+            <div class="step-title">Navigate to a ❌ NEEDS FIXES PR — bridge into Section 2</div>
+            <span class="step-time t-blue">~10s</span>
+          </div>
+          <div class="story">The flagged PR is your transition into the control layer. This is where you prove you're not just running the agent — you're accountable for what ships.</div>
+          <a class="inline-link" href="https://github.com/ToniJansen/jansen-dev-agent/pulls?q=is%3Apr+is%3Aopen+%5BAgent%5D" target="_blank">→ Open PRs — pick one marked ❌ NEEDS FIXES</a>
+          <div class="quote-block">"This one was flagged. Let me show you what triage looks like."</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Section 2 ── -->
+  <div class="section s-red" id="sec-2">
+    <div class="sec-header open" onclick="toggleSec('sec-2')">
+      <span class="sec-icon">🔍</span>
+      <div class="sec-info">
+        <div class="sec-title">Section 2 — Triage live</div>
+        <div class="sec-sub">Stay on one NEEDS FIXES PR the whole section</div>
+      </div>
+      <span class="sec-arrow">▶</span>
+    </div>
+    <div class="sec-body open" id="body-2">
+
+      <div class="step" onclick="toggleStep(this)">
+        <input class="step-cb" type="checkbox"/>
+        <div class="step-body">
+          <div class="step-top">
+            <div class="step-title">Set the frame</div>
+            <span class="step-time t-red">~20s</span>
+          </div>
+          <div class="story">Before touching anything, you define your role clearly. You're not the coder here — you're the one who decides if the agent's work is safe to ship.</div>
+          <div class="quote-block">"Now I do triage. The agent flagged this PR. My job: did it find the right problems, and did it fix them correctly?"</div>
+        </div>
+      </div>
+
+      <div class="step" onclick="toggleStep(this)">
+        <input class="step-cb" type="checkbox"/>
+        <div class="step-body">
+          <div class="step-top">
+            <div class="step-title">Scroll to 🔴🟡🔵 findings — read each line number + why it's dangerous</div>
+            <span class="step-time t-red">~90s</span>
+          </div>
+          <div class="story">The findings block is the agent's report card. You're not reading it passively — you're verifying its reasoning, line by line.</div>
+          <div class="quote-block">"Line [X] — [issue]. This is a real security vulnerability, not a style suggestion."</div>
+        </div>
+      </div>
+
+      <div class="step" onclick="toggleStep(this)">
+        <input class="step-cb" type="checkbox"/>
+        <div class="step-body">
+          <div class="step-top">
+            <div class="step-title">Click "Files changed" → read the diff on camera, don't rush</div>
+            <span class="step-time t-red">~60s</span>
+          </div>
+          <div class="story">A report is easy to generate. A fix that actually works is not. This is the moment you separate AI-assisted from AI-dependent.</div>
+          <div class="quote-block">"The agent didn't just report the problem — it rewrote the code. I'm checking: does this fix actually solve it, or did the agent hallucinate something?"</div>
+        </div>
+      </div>
+
+      <div class="step" onclick="toggleStep(this)">
+        <input class="step-cb" type="checkbox"/>
+        <div class="step-body">
+          <div class="step-top">
+            <div class="step-title">Pause — deliver the judgment</div>
+            <span class="step-time t-red">~20s</span>
+          </div>
+          <div class="story">The pause is intentional. Jido needs to see you thinking, not rubber-stamping. Human judgment on camera.</div>
+          <div class="quote-block">"This is where human judgment matters."</div>
+          <div class="quote-block" style="margin-top:.35rem">"This is correct. The agent solved it properly."</div>
+        </div>
+      </div>
+
+      <div class="step" onclick="toggleStep(this)">
+        <input class="step-cb" type="checkbox"/>
+        <div class="step-body">
+          <div class="step-top">
+            <div class="step-title">Back to PR description → pytest output block</div>
+            <span class="step-time t-red">~30s</span>
+          </div>
+          <div class="story">The tests are your proof of correctness. Not "it looks right" — it passed. The agent verified its own work.</div>
+          <div class="quote-block">"Before: [N] tests failing — exactly the issues it found. After: all passing. The fix is verified, not assumed."</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Section 3 ── -->
+  <div class="section s-green" id="sec-3">
+    <div class="sec-header" onclick="toggleSec('sec-3')">
+      <span class="sec-icon">📊</span>
+      <div class="sec-info">
+        <div class="sec-title">Section 3 — Impact metrics</div>
+        <div class="sec-sub">Telegram → /report → PDF</div>
+      </div>
+      <span class="sec-arrow">▶</span>
+    </div>
+    <div class="sec-body" id="body-3">
+
+      <div class="step" onclick="toggleStep(this)">
+        <input class="step-cb" type="checkbox"/>
+        <div class="step-body">
+          <div class="step-top">
+            <div class="step-title">Open Telegram → @jansen_dev_agent_bot → /report</div>
+            <span class="step-time t-green">~20s</span>
+          </div>
+          <div class="story">You're generating live data in front of them — not a pre-made slide. This is the dashboard you actually use to manage the system.</div>
+          <a class="inline-link" href="https://t.me/jansen_dev_agent_bot" target="_blank">→ t.me/jansen_dev_agent_bot — type /report, wait ~15s for PDF</a>
+          <div class="quote-block">"Live metrics dashboard — straight from GitHub API, no manual data."</div>
+        </div>
+      </div>
+
+      <div class="step" onclick="toggleStep(this)">
+        <input class="step-cb" type="checkbox"/>
+        <div class="step-body">
+          <div class="step-top">
+            <div class="step-title">Open PDF → Before vs. After section</div>
+            <span class="step-time t-green">~20s</span>
+          </div>
+          <div class="story">The before/after is your headline metric. Zero to fully automated in weeks. That's the business impact of running agents in production.</div>
+          <div class="quote-block">"Before: zero automated reviews per week. After: all of these PRs — zero human effort."</div>
+        </div>
+      </div>
+
+      <div class="step" onclick="toggleStep(this)">
+        <input class="step-cb" type="checkbox"/>
+        <div class="step-body">
+          <div class="step-top">
+            <div class="step-title">Point to status tables</div>
+            <span class="step-time t-green">~20s</span>
+          </div>
+          <div class="story">This is operational control. What needs attention, what's in flight, what's done — without touching a single file manually.</div>
+          <div class="quote-block">"This is my triage queue. I don't chase files — the agent surfaces what matters."</div>
+        </div>
+      </div>
+
+      <div class="step" onclick="toggleStep(this)">
+        <input class="step-cb" type="checkbox"/>
+        <div class="step-body">
+          <div class="step-top">
+            <div class="step-title">Close strong — look at camera</div>
+            <span class="step-time t-green">~20s</span>
+          </div>
+          <div class="story">End with the same frame you opened with. Agents implement, you own quality — let that be the last thing Jido hears.</div>
+          <div class="quote-block">"Agents implement. I own the quality. Live system, real PRs, real tests. Happy to go deeper in a call."</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <button class="reset-btn" onclick="resetAll()">↺ Reset all checkboxes</button>
+
+</div>
+
+<script>
+  /* ── Stopwatch ── */
+  let elapsed = 0;
+  let running = false;
+  let interval = null;
+  const WARN_AT = 6 * 60;
+  const OVER_AT = 8 * 60;
+
+  function fmt(s) {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return m + ':' + String(sec).padStart(2, '0');
+  }
+
+  function tick() {
+    elapsed++;
+    const el = document.getElementById('timer');
+    el.textContent = fmt(elapsed);
+    el.className = 'timer-display' +
+      (elapsed >= OVER_AT ? ' over' : elapsed >= WARN_AT ? ' warn' : '');
+  }
+
+  function toggleTimer() {
+    const btn = document.getElementById('sw-btn');
+    if (running) {
+      clearInterval(interval);
+      running = false;
+      btn.textContent = '▶ Resume';
+      btn.className = 'sw-btn start';
+    } else {
+      interval = setInterval(tick, 1000);
+      running = true;
+      btn.textContent = '⏸ Pause';
+      btn.className = 'sw-btn stop';
+    }
+  }
+
+  function resetTimer() {
+    clearInterval(interval);
+    running = false;
+    elapsed = 0;
+    document.getElementById('timer').textContent = '0:00';
+    document.getElementById('timer').className = 'timer-display';
+    document.getElementById('sw-btn').textContent = '▶ Start';
+    document.getElementById('sw-btn').className = 'sw-btn start';
+  }
+
+  /* ── Sections ── */
+  function toggleSec(id) {
+    const sec = document.getElementById(id);
+    const header = sec.querySelector('.sec-header');
+    const bodyId = 'body-' + id.split('-').pop();
+    const body = document.getElementById(bodyId);
+    header.classList.toggle('open');
+    body.classList.toggle('open');
+  }
+
+  /* ── Steps ── */
+  function toggleStep(el) {
+    if (event.target.type === 'checkbox') return;
+    const cb = el.querySelector('.step-cb');
+    cb.checked = !cb.checked;
+    el.classList.toggle('done', cb.checked);
+    updateProg();
+  }
+
+  function updateProg() {
+    const all  = document.querySelectorAll('.step-cb');
+    const done = document.querySelectorAll('.step-cb:checked');
+    const pct  = all.length ? (done.length / all.length * 100) : 0;
+    document.getElementById('prog-fill').style.width = pct + '%';
+    document.getElementById('prog-label').textContent = done.length + ' / ' + all.length;
+  }
+
+  function resetAll() {
+    document.querySelectorAll('.step-cb').forEach(cb => cb.checked = false);
+    document.querySelectorAll('.step').forEach(el => el.classList.remove('done'));
+    updateProg();
+    resetTimer();
+  }
+
+  document.querySelectorAll('.step-cb').forEach(cb => {
+    cb.addEventListener('click', e => e.stopPropagation());
+    cb.addEventListener('change', function() {
+      this.closest('.step').classList.toggle('done', this.checked);
+      updateProg();
+    });
+  });
+
+  updateProg();
+</script>
+</body>
+</html>
