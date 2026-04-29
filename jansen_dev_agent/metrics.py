@@ -115,6 +115,7 @@ def compute(prs: list[dict], include_mock: bool = True) -> dict:
             if "NEEDS FIXES" in body or "❌" in body:
                 needs_fixes += 1
 
+    pending_prs = [p for p in prs if not p.get("merged_at")]
     days_sorted = sorted(prs_by_day)
 
     return {
@@ -127,6 +128,7 @@ def compute(prs: list[dict], include_mock: bool = True) -> dict:
         "needs_fixes": needs_fixes,
         "approved": len(merged_prs),
         "merged_prs": merged_prs,
+        "pending_prs": pending_prs,
         "days": days_sorted,
         "prs_per_day": [prs_by_day[d] for d in days_sorted],
         "prs": prs,
@@ -167,25 +169,47 @@ def _build_html(m: dict, repo: str) -> str:
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     chart_b64 = _chart_png_b64(m["days"], m["prs_per_day"])
 
-    rows = ""
-    for pr in sorted(m["prs"], key=lambda p: p["created_at"], reverse=True)[:20]:
-        date = pr["created_at"][:10]
-        if pr.get("merged_at"):
-            status = "✅ Merged"
-        elif "NEEDS FIXES" in (pr.get("body") or "") or "❌" in (pr.get("body") or ""):
-            status = "❌ Needs fixes"
-        else:
-            status = "🔄 Open"
+    def _pr_row(pr: dict, date_field: str = "created_at", show_findings: bool = True) -> str:
+        date = (pr.get(date_field) or pr["created_at"])[:10]
+        body = pr.get("body") or ""
+        c, w, i = _parse_findings(body)
+        findings = f"🔴 {c}C &nbsp;🟡 {w}W &nbsp;🔵 {i}I"
         ft = _file_type(pr["title"])
         url = pr["html_url"]
-        short_title = pr["title"].replace("[Agent] ", "")[:60]
-        rows += f"""
+        short_title = pr["title"].replace("[Agent] ", "")[:55]
+        findings_td = f'<td style="font-size:.8rem">{findings}</td>' if show_findings else ""
+        return f"""
         <tr>
           <td>{date}</td>
           <td><a href="{url}" target="_blank">{short_title}</a></td>
           <td><span class="badge badge-{ft.lower()}">{ft}</span></td>
-          <td>{status}</td>
+          {findings_td}
         </tr>"""
+
+    needs_fixes_prs = [p for p in m["pending_prs"]
+                       if "NEEDS FIXES" in (p.get("body") or "") or "❌" in (p.get("body") or "")]
+    open_prs        = [p for p in m["pending_prs"]
+                       if "NEEDS FIXES" not in (p.get("body") or "") and "❌" not in (p.get("body") or "")]
+
+    def _nf_row(pr: dict) -> str:
+        date = pr["created_at"][:10]
+        body = pr.get("body") or ""
+        c, w, i = _parse_findings(body)
+        findings = f"🔴 {c}C &nbsp;🟡 {w}W &nbsp;🔵 {i}I"
+        ft = _file_type(pr["title"])
+        url = pr["html_url"]
+        short_title = pr["title"].replace("[Agent] ", "")[:55]
+        return f"""
+        <tr>
+          <td>{date}</td>
+          <td><a href="{url}" target="_blank">{short_title}</a></td>
+          <td><span class="badge badge-{ft.lower()}">{ft}</span></td>
+          <td>❌ Needs fixes</td>
+          <td style="font-size:.8rem">{findings}</td>
+        </tr>"""
+
+    needs_fixes_rows = "".join(_nf_row(p) for p in sorted(needs_fixes_prs, key=lambda p: p["created_at"], reverse=True)[:20])
+    open_rows        = "".join(_pr_row(p) for p in sorted(open_prs, key=lambda p: p["created_at"], reverse=True)[:20])
 
     merged_rows = ""
     for pr in sorted(m["merged_prs"], key=lambda p: p["merged_at"], reverse=True)[:20]:
@@ -306,18 +330,26 @@ def _build_html(m: dict, repo: str) -> str:
   </div>
 
   <div class="section">
-    <h2>Fixes Applied — Merged PRs ✅</h2>
+    <h2>❌ Needs Fixes — Action Required</h2>
     <table>
-      <thead><tr><th>Merged</th><th>File</th><th>Type</th><th>Issues Fixed</th></tr></thead>
-      <tbody>{merged_rows}</tbody>
+      <thead><tr><th>Date</th><th>PR</th><th>Type</th><th>Status</th><th>Findings</th></tr></thead>
+      <tbody>{needs_fixes_rows}</tbody>
     </table>
   </div>
 
   <div class="section">
-    <h2>All Recent PRs</h2>
+    <h2>🔄 Open — Awaiting Review</h2>
     <table>
-      <thead><tr><th>Date</th><th>PR</th><th>Type</th><th>Status</th></tr></thead>
-      <tbody>{rows}</tbody>
+      <thead><tr><th>Date</th><th>PR</th><th>Type</th><th>Findings</th></tr></thead>
+      <tbody>{open_rows}</tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>✅ Fixes Applied — Merged</h2>
+    <table>
+      <thead><tr><th>Merged</th><th>PR</th><th>Type</th><th>Issues Fixed</th></tr></thead>
+      <tbody>{merged_rows}</tbody>
     </table>
   </div>
 
