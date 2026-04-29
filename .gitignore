@@ -4,3 +4,4 @@ __pycache__/
 .maintenance
 demo/meetings/processed/
 metrics_report.html
+metrics_report.pdf

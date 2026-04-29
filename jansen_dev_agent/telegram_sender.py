@@ -2,7 +2,8 @@ from __future__ import annotations
 import os
 import requests
 
-_API = "https://api.telegram.org/bot{token}/sendMessage"
+_API     = "https://api.telegram.org/bot{token}/sendMessage"
+_API_DOC = "https://api.telegram.org/bot{token}/sendDocument"
 _MAX = 4096
 
 
@@ -24,3 +25,16 @@ def send(text: str) -> None:
             ).raise_for_status()
         else:
             r.raise_for_status()
+
+
+def send_document(file_path: str, caption: str = "") -> None:
+    """Send a file (PDF, etc.) to the configured chat."""
+    token = os.environ["TELEGRAM_BOT_TOKEN"]
+    chat_id = os.environ["TELEGRAM_CHAT_ID"]
+    with open(file_path, "rb") as f:
+        requests.post(
+            _API_DOC.format(token=token),
+            data={"chat_id": chat_id, "caption": caption},
+            files={"document": f},
+            timeout=60,
+        ).raise_for_status()

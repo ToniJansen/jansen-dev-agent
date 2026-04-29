@@ -279,6 +279,38 @@ def _print_summary(m: dict, repo: str) -> None:
     print(f"{'─'*50}\n")
 
 
+# ── PDF generation ────────────────────────────────────────────────────────
+
+def generate_pdf(html_path: Path) -> Path:
+    """Render HTML to PDF using Playwright headless Chromium."""
+    from playwright.sync_api import sync_playwright
+
+    pdf_path = html_path.with_suffix(".pdf")
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page()
+        page.goto(f"file://{html_path.absolute()}", wait_until="networkidle")
+        page.wait_for_timeout(1500)  # let Chart.js finish rendering
+        page.pdf(
+            path=str(pdf_path),
+            format="A4",
+            print_background=True,
+            margin={"top": "20mm", "bottom": "20mm", "left": "15mm", "right": "15mm"},
+        )
+        browser.close()
+    return pdf_path
+
+
+def build_report() -> Path:
+    """Fetch latest data, write HTML, render PDF. Returns PDF path."""
+    repo = os.environ["GITHUB_REPO"]
+    prs = _fetch_agent_prs(repo)
+    m = compute(prs)
+    html = _build_html(m, repo)
+    _REPORT.write_text(html, encoding="utf-8")
+    return generate_pdf(_REPORT)
+
+
 # ── Entry point ────────────────────────────────────────────────────────────
 
 def main() -> None:

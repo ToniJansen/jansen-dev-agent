@@ -19,7 +19,8 @@ else
 fi
 
 echo "==> Installing Python dependencies..."
-pip3 install --quiet groq requests python-dotenv "python-telegram-bot>=20.0" pytest
+pip3 install --quiet groq requests python-dotenv "python-telegram-bot>=20.0" pytest playwright
+python3 -m playwright install chromium --with-deps
 
 echo "==> Creating .env..."
 if [ ! -f "$APP_DIR/.env" ]; then

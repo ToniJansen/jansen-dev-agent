@@ -18,6 +18,7 @@ from meeting_processor import process_meeting
 from code_fixer import fix_file
 from github_pr import open_review_pr
 from greeter import greet
+from metrics import build_report
 from file_processor import FileTooLargeError
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(levelname)s  %(message)s")
@@ -100,6 +101,29 @@ async def maintenance_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         await update.message.reply_text(f"Maintenance is currently {status}.\nUsage: /maintenance on|off")
 
 
+async def report_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if update.effective_user.id != OWNER_ID:
+        await update.message.reply_text("⛔ Not authorized.")
+        return
+    if _is_maintenance():
+        await update.message.reply_text("🔧 Bot is under maintenance.")
+        return
+    await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="upload_document")
+    await update.message.reply_text("📊 Generating metrics report, please wait...")
+    try:
+        pdf_path = await asyncio.to_thread(build_report)
+        with open(pdf_path, "rb") as f:
+            await context.bot.send_document(
+                chat_id=update.effective_chat.id,
+                document=f,
+                filename="jansen_dev_agent_metrics.pdf",
+                caption="🤖 Agent metrics — live data from GitHub",
+            )
+    except Exception as e:
+        log.error("report_cmd failed: %s", e)
+        await update.message.reply_text(f"⚠️ Failed to generate report: {e}")
+
+
 async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if _is_maintenance():
         await update.message.reply_text("🔧 Bot is under maintenance. Please try again later.")
@@ -180,6 +204,7 @@ def main() -> None:
     app = ApplicationBuilder().token(token).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("maintenance", maintenance_cmd))
+    app.add_handler(CommandHandler("report", report_cmd))
     app.add_handler(MessageHandler(filters.Document.ALL, handle_document))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
     log.info("Bot listener started. Waiting for messages...")
