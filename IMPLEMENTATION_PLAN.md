@@ -3,11 +3,11 @@
 > **Status: COMPLETE** — All tasks implemented and committed to `github.com/ToniJansen/jansen-dev-agent`.
 > VPS deployment (Oracle Cloud) in progress — see Task 11.
 
-**Goal:** A Python project with two scheduled agents (overnight code review at 02:00, morning meeting-to-todos at 07:00), an interactive Telegram bot (`@jansen_dev_agent_bot`), automatic GitHub PR creation with LLM-generated code fixes, and language-aware greeting/off-topic handling.
+**Goal:** A Python project with two scheduled agents (overnight code review at 02:00, morning meeting-to-todos at 07:00), an interactive Telegram bot (`@jansen_dev_agent_bot`), automatic GitHub PR creation with LLM-generated code fixes, security regression tests before/after each fix, language-aware greeting/off-topic handling, and an on-demand metrics dashboard delivered as PDF via `/report`.
 
-**Architecture:** Four entry points sharing five processors and two support modules. Scheduled scripts run via launchd (macOS) or systemd+cron (Linux/VPS). Interactive mode uses async long-polling (`python-telegram-bot`). Content-type auto-detection routes incoming messages to the correct processor. All LLM inputs pass through a pre-processing safety layer before reaching Groq.
+**Architecture:** Four entry points sharing five processors and three support modules. Scheduled scripts run via launchd (macOS) or systemd+cron (Linux/VPS). Interactive mode uses async long-polling (`python-telegram-bot`). Content-type auto-detection routes incoming messages to the correct processor. All LLM inputs pass through a pre-processing safety layer before reaching Groq.
 
-**Tech Stack:** Python 3.9+, `groq` SDK (free tier, `llama-3.3-70b-versatile`), `python-telegram-bot>=20.0`, `requests`, `python-dotenv`
+**Tech Stack:** Python 3.9+, `groq` SDK (free tier, `llama-3.3-70b-versatile`), `python-telegram-bot>=20.0`, `requests`, `python-dotenv`, `pytest`, `playwright` (Chromium PDF rendering)
 
 **Capabilities:**
 | Input | Processor | Trigger |
@@ -34,14 +34,17 @@ ai_principal_interview_demo/
 │   ├── code_fixer.py                ← Groq: LLM-generated code fix (Python + SQL)
 │   ├── github_pr.py                 ← GitHub REST API: branch + commit + PR
 │   ├── greeter.py                   ← Groq: language-aware intro / off-topic redirect
+│   ├── metrics.py                   ← GitHub API: PR metrics + HTML dashboard + PDF via Playwright
 │   ├── file_processor.py            ← pre-LLM safety: token budget + 7-vector injection defense
-│   ├── telegram_sender.py           ← Telegram Bot API wrapper (chunks + Markdown fallback)
+│   ├── telegram_sender.py           ← Telegram Bot API wrapper (text chunks + document upload)
 │   ├── .env.example
 │   └── .env                         ← gitignored
 └── demo/
     ├── order_manager.py             ← primary code review target (planted issues)
     ├── code_auto_reviewed/          ← files scanned by overnight_agent; PRs opened per file
     │   └── queries.sql
+    ├── tests/
+    │   └── test_security.py         ← 10 pytest security tests (run before/after each fix)
     ├── meetings/
     │   ├── ata-sprint-planning.md   ← meeting demo file
     │   └── processed/               ← files archived here after processing
@@ -165,6 +168,54 @@ Flow:
 
 ---
 
+## Task 5f — Security test suite ✅
+
+`demo/tests/test_security.py` — 10 pytest tests covering the most critical attack vectors.
+
+**Tests (parametrized where applicable):**
+- `test_no_hardcoded_secrets` × 4 patterns (password, secret/key, Stripe key, webhook secret)
+- `test_no_sql_fstring` — f-string in SQL query
+- `test_no_sql_percent_format` — % formatting in SQL
+- `test_no_os_system` — command injection via `os.system()`
+- `test_no_pickle_load` — unsafe deserialization
+- `test_no_path_concatenation` — path traversal via string concat
+- `test_requests_have_timeout` — all HTTP calls have explicit timeout
+
+`TEST_TARGET` env var points to the file under test — overnight_agent writes content to a temp file and sets `TEST_TARGET` before running pytest.
+
+**Verified result on `order_manager.py`:** 2 failed (hardcoded key + SQL f-string), 8 passed.
+
+- [x] **Step 1:** Write `demo/tests/test_security.py`
+- [x] **Step 2:** Update `overnight_agent.py` — `_run_tests(content, suffix)` before/after fix
+- [x] **Step 3:** Update `github_pr.py` — `test_before`/`test_after` section in PR body
+
+---
+
+## Task 5g — `metrics.py` + `/report` command ✅
+
+`metrics.py` — GitHub API → metrics computation → HTML dashboard → PDF via Playwright.
+
+**Pipeline:**
+1. Fetch all `[Agent]` PRs from GitHub API (open + closed)
+2. Compute: total PRs, by file type, CRITICAL/WARNING/INFO counts, approved vs. needs-fixes
+3. Build self-contained HTML with Chart.js timeline + before/after cards + PR table
+4. `generate_pdf()` — Playwright headless Chromium renders the HTML (JS + charts) → A4 PDF
+5. `build_report()` — orchestrates steps 1–4, returns PDF path
+
+**`/report` Telegram command (owner-only):**
+- `asyncio.to_thread(build_report)` — non-blocking PDF generation
+- Bot sends PDF as document via `send_document()` in `telegram_sender.py`
+- Live data: every `/report` pulls fresh data from GitHub API
+
+**`telegram_sender.py`** updated with `send_document(file_path, caption)` using `sendDocument` endpoint.
+
+- [x] **Step 1:** Write `metrics.py` with `build_report()` and `generate_pdf()`
+- [x] **Step 2:** Add `send_document()` to `telegram_sender.py`
+- [x] **Step 3:** Add `/report` command to `bot_listener.py`
+- [x] **Step 4:** Update `deploy.sh` — `pip install playwright` + `playwright install chromium --with-deps`
+
+---
+
 ## Task 5e — `greeter.py` ✅
 
 Groq call for language-aware greetings and off-topic handling.
@@ -278,6 +329,8 @@ One-shot deploy script at `deploy.sh` in repo root. Sets up Ubuntu 22.04 on Orac
 - [x] `python3 morning_agent.py` → Telegram report with decisions + action items
 - [x] `python3 bot_listener.py` running → `/start`, file upload, text, greeter all work
 - [x] Mock files in `demo/mocks/` — 4 Python + 4 SQL with planted issues
+- [x] Security tests in `demo/tests/` — 2 failures on original, 0 on fixed
+- [x] `/report` command → PDF delivered via Telegram (193 KB, Chart.js rendered)
 - [x] `.env` not tracked by git
 - [x] Both scheduled jobs active in launchd
 - [ ] VPS running on Oracle Cloud with systemd service active
@@ -288,11 +341,15 @@ One-shot deploy script at `deploy.sh` in repo root. Sets up Ubuntu 22.04 on Orac
 
 | Hash | Description |
 |------|-------------|
+| `aa806fa` | feat: /report command — PDF from live GitHub data via Playwright, sent via Telegram |
+| `ec4fe62` | feat: add metrics dashboard (GitHub API + HTML report + Chart.js) |
+| `bae1659` | feat: security test suite + before/after test results in PRs |
+| `9e62087` | docs: add Oracle Cloud step-by-step deploy guide |
+| `e3f631e` | docs: update implementation plan to reflect completed state |
 | `eaf9942` | feat: add one-shot deploy script for Oracle Cloud Ubuntu 22.04 |
 | `868e79a` | feat: greeter handles off-topic messages with polite redirect |
 | `2c7d2e1` | feat: add LLM greeter — auto-detects language, injection protection |
 | `067819a` | feat: add 6 mock files for Telegram testing (order_mock_1-3.py, q_test_1-3.sql) |
-| `ab996e2` | feat: add small mock files for Telegram bot testing (order_mock.py, q_test.sql) |
 | `0f8b830` | feat: code_auto_reviewed/ folder, overnight agent scans folder + git pull |
 | `5c8101f` | fix: unique branch per run (timestamp), correct filename in review, PR on upload |
 
@@ -309,6 +366,8 @@ One-shot deploy script at `deploy.sh` in repo root. Sets up Ubuntu 22.04 on Orac
 | Task 5c — code_fixer.py | 10 min | ✅ Done |
 | Task 5d — github_pr.py | 15 min | ✅ Done |
 | Task 5e — greeter.py | 10 min | ✅ Done |
+| Task 5f — Security tests | 15 min | ✅ Done |
+| Task 5g — metrics.py + /report | 20 min | ✅ Done |
 | Tasks 6–7 — Scheduled agents | 15 min | ✅ Done |
 | Task 8 — Interactive bot | 20 min | ✅ Done |
 | Task 9 — Testing | 20 min | ✅ Done |

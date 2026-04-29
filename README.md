@@ -12,9 +12,10 @@ Three entry points. One pipeline. No human in the loop.
 
 | Trigger | Input | Output |
 |---------|-------|--------|
-| **02:00 nightly** | Python/SQL files in `code_auto_reviewed/` | Telegram report + GitHub PR with LLM-generated fixes |
+| **02:00 nightly** | Python/SQL files in `code_auto_reviewed/` | Telegram report + security tests before/after + GitHub PR with LLM fixes |
 | **07:00 daily** | Meeting transcripts in `meetings/` | Telegram summary: decisions, action items, blockers |
 | **On demand** | File or text sent to `@jansen_dev_agent_bot` | Instant review or analysis in reply |
+| **`/report` command** | Live GitHub API data | PDF metrics dashboard delivered via Telegram |
 
 ---
 
@@ -135,6 +136,8 @@ Send any text that isn't code, SQL, or meeting content → the bot responds in y
 | Bot framework | `python-telegram-bot` 22.x (async, long-polling) |
 | Scheduling | launchd (macOS) / systemd + cron (Linux) |
 | GitHub integration | REST API via `requests` — branch, commit, PR |
+| PDF rendering | Playwright headless Chromium — renders Chart.js charts |
+| Security tests | `pytest` — 10 tests, runs before/after every automated fix |
 | Runtime | Python 3.9+ |
 
 ---
@@ -152,9 +155,14 @@ jansen_dev_agent/
 ├── code_fixer.py         # LLM code fix → Groq
 ├── github_pr.py          # GitHub PR creation
 ├── greeter.py            # language-aware greeting/redirect
+├── metrics.py            # GitHub API metrics + HTML + PDF via Playwright
 ├── file_processor.py     # token budget + injection defense
-├── telegram_sender.py    # Telegram API wrapper
+├── telegram_sender.py    # Telegram API wrapper (text + document)
 └── .env.example
+
+demo/
+├── tests/
+│   └── test_security.py  # 10 security regression tests (run before/after each fix)
 
 demo/
 ├── order_manager.py
@@ -213,6 +221,7 @@ MEETINGS_DIR=../demo/meetings
 | Command | Description |
 |---------|-------------|
 | `/start` | Show capabilities and usage |
+| `/report` | Owner only — generate PDF metrics dashboard from live GitHub data and send via Telegram |
 | `/maintenance on\|off` | Owner only — pause/resume the bot |
 
 ---
