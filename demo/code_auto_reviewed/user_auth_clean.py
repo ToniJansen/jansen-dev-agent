@@ -1,3 +1,4 @@
+```python
 """user_auth_clean.py — JWT-based authentication utilities."""
 from __future__ import annotations
 import logging
@@ -10,7 +11,7 @@ import jwt
 
 log = logging.getLogger(__name__)
 
-_JWT_SECRET  = os.environ["JWT_SECRET"]
+_JWT_SECRET  = os.environ.get("JWT_SECRET")
 _JWT_ALG     = "HS256"
 _TOKEN_TTL   = int(os.environ.get("TOKEN_TTL_MINUTES", "60"))
 
@@ -46,3 +47,4 @@ def decode_token(token: str) -> Optional[dict]:
 def is_admin(token: str) -> bool:
     payload = decode_token(token)
     return payload is not None and payload.get("role") == "admin"
+```
