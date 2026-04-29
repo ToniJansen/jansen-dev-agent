@@ -86,7 +86,7 @@ _@jansen_dev_agent_bot_
 For `.py` file uploads, the bot also opens a GitHub PR with the fixed code.
 
 ### SQL review
-Multi-dialect — PostgreSQL, MySQL, SQLite, BigQuery, Spark SQL, T-SQL, ANSI SQL:
+Multi-dialect — PostgreSQL, MySQL, SQLite, BigQuery, Spark SQL, T-SQL, ANSI SQL. For `.sql` file uploads, the bot also opens a GitHub PR with the fixed query:
 
 ```
 🗄️ q_test_1.sql — dialect: PostgreSQL — 14:35

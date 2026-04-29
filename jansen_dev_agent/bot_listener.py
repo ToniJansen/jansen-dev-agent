@@ -159,6 +159,9 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         elif doc.file_name.endswith(".sql"):
             report = await asyncio.to_thread(review_sql, tmp_path)
             await _reply(update, report)
+            fixed = await asyncio.to_thread(fix_file, tmp_path, report)
+            pr_url = await asyncio.to_thread(open_review_pr, doc.file_name, report, fixed)
+            await update.message.reply_text(f"🔗 PR opened: {pr_url}")
         else:
             report = await asyncio.to_thread(process_meeting, tmp_path)
             await _reply(update, report)
