@@ -129,13 +129,13 @@ def compute(prs: list[dict], include_mock: bool = True) -> dict:
 
 def _build_html(m: dict, repo: str) -> str:
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-    # Show only last 30 days, most recent on the right
+    # Show only last 14 days, labels as MM/DD
     days_all = m["days"]
     counts_all = m["prs_per_day"]
-    days_30 = days_all[-30:]
-    counts_30 = counts_all[-30:]
-    days_js = str(days_30)
-    counts_js = str(counts_30)
+    days_14 = [d[5:] for d in days_all[-14:]]   # "2026-04-29" → "04-29"
+    counts_14 = counts_all[-14:]
+    days_js = str(days_14)
+    counts_js = str(counts_14)
 
     rows = ""
     for pr in sorted(m["prs"], key=lambda p: p["created_at"], reverse=True)[:20]:
@@ -267,7 +267,7 @@ def _build_html(m: dict, repo: str) -> str:
       options: {{
         plugins: {{ legend: {{ display: false }} }},
         scales: {{
-          x: {{ ticks: {{ color: "#8b949e", font: {{ size: 9 }}, maxRotation: 45, minRotation: 45 }}, grid: {{ color: "#21262d" }} }},
+          x: {{ ticks: {{ color: "#8b949e", font: {{ size: 11 }} }}, grid: {{ color: "#21262d" }} }},
           y: {{ ticks: {{ color: "#8b949e", stepSize: 1 }}, grid: {{ color: "#21262d" }} }}
         }}
       }}
