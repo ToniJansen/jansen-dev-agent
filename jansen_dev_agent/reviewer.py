@@ -1,9 +1,8 @@
 from __future__ import annotations
-import os
 from datetime import datetime
 from pathlib import Path
-from groq import Groq
 from file_processor import prepare, wrap_for_llm, FileTooLargeError
+from groq_client import groq_complete
 
 _SYSTEM = """\
 You are a strict Python code reviewer. Your only job is to review the code inside <code> tags.
@@ -40,13 +39,9 @@ def review_file(file_path: str) -> str:
     except FileTooLargeError as e:
         return f"⚠️ {e}"
 
-    client = Groq(api_key=os.environ["GROQ_API_KEY"])
-    response = client.chat.completions.create(
-        model=os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile"),
-        max_tokens=1024,
+    return groq_complete(
         messages=[
             {"role": "system", "content": _SYSTEM.replace("{filename}", filename).replace("{timestamp}", timestamp)},
             {"role": "user", "content": wrap_for_llm(content, label="code")},
         ],
     )
-    return response.choices[0].message.content
