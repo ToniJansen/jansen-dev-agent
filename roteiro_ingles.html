@@ -302,6 +302,98 @@
     <div style="font-size:.7rem;color:#475569;text-align:center;margin-top:.4rem;">Click to open full size</div>
   </div>
 
+  <!-- ── Demo Prep ── -->
+  <div class="section s-yellow" id="sec-prep">
+    <div class="sec-header" onclick="toggleSec('sec-prep')">
+      <span class="sec-icon">⚙️</span>
+      <div class="sec-info">
+        <div class="sec-title">Demo Prep — Mock Files</div>
+        <div class="sec-sub">Do this before recording — files A–E for bot, F–J for scheduled agents</div>
+      </div>
+      <span class="sec-arrow">▶</span>
+    </div>
+    <div class="sec-body" id="body-prep">
+
+      <div class="step" onclick="toggleStep(this)">
+        <input class="step-cb" type="checkbox"/>
+        <div class="step-body">
+          <div class="step-top">
+            <div class="step-title">Bot demo files (A–E) — send via Telegram during live demo</div>
+            <span class="step-time t-yellow">bot</span>
+          </div>
+          <div class="step-note" style="margin-top:.3rem;">
+            📁 <code style="background:#1e293b;padding:.1rem .4rem;border-radius:4px;font-size:.78rem;">demo/mock_files/</code>
+          </div>
+          <div style="margin-top:.5rem;display:flex;flex-direction:column;gap:.3rem;">
+            <div style="font-size:.8rem;color:#94a3b8;"><span style="color:#86efac;">✅ mockA.sql</span> — clean SELECT with JOINs → agent approves, no intervention</div>
+            <div style="font-size:.8rem;color:#94a3b8;"><span style="color:#fca5a5;">❌ mockB.sql</span> — SELECT without FROM → agent flags CRITICAL</div>
+            <div style="font-size:.8rem;color:#94a3b8;"><span style="color:#86efac;">✅ mockC.py</span> — clean hello world → agent approves</div>
+            <div style="font-size:.8rem;color:#94a3b8;"><span style="color:#fca5a5;">❌ mockD.py</span> — deeply nested ifs → agent flags WARNING</div>
+            <div style="font-size:.8rem;color:#94a3b8;"><span style="color:#bae6fd;">📋 mockE_meet_transcription.md</span> — 5 action items → morning agent extracts all</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step" onclick="toggleStep(this)">
+        <input class="step-cb" type="checkbox"/>
+        <div class="step-body">
+          <div class="step-top">
+            <div class="step-title">Scheduled agent files (F–J) — consumed automatically by cron jobs</div>
+            <span class="step-time t-yellow">cron</span>
+          </div>
+          <div class="step-note" style="margin-top:.3rem;">
+            📁 <code style="background:#1e293b;padding:.1rem .4rem;border-radius:4px;font-size:.78rem;">demo/</code> (F–I) &nbsp;·&nbsp;
+            <code style="background:#1e293b;padding:.1rem .4rem;border-radius:4px;font-size:.78rem;">demo/meetings/</code> (J)
+          </div>
+          <div style="margin-top:.5rem;display:flex;flex-direction:column;gap:.3rem;">
+            <div style="font-size:.8rem;color:#94a3b8;"><span style="color:#86efac;">✅ mockF.sql</span> — clean product sales query → auto-approved</div>
+            <div style="font-size:.8rem;color:#94a3b8;"><span style="color:#fca5a5;">❌ mockG.sql</span> — SELECT without FROM → needs fix PR</div>
+            <div style="font-size:.8rem;color:#94a3b8;"><span style="color:#86efac;">✅ mockH.py</span> — clean add() function → auto-approved</div>
+            <div style="font-size:.8rem;color:#94a3b8;"><span style="color:#fca5a5;">❌ mockI.py</span> — deeply nested discount logic → needs fix PR</div>
+            <div style="font-size:.8rem;color:#94a3b8;"><span style="color:#bae6fd;">📋 mockJ_meet_transcription.md</span> — 2 action items → morning agent picks up</div>
+          </div>
+          <div style="margin-top:.5rem;background:#1c1000;border:1px solid #d97706;border-radius:7px;padding:.5rem .75rem;font-size:.78rem;color:#fde68a;">
+            ⚠️ To run overnight agent against a specific mock: update <code>CODE_TARGET_FILE</code> in <code>.env</code> or run:<br/>
+            <code>CODE_TARGET_FILE=../demo/arquivo_mockI.py python overnight_agent.py</code>
+          </div>
+        </div>
+      </div>
+
+      <div class="step" onclick="toggleStep(this)">
+        <input class="step-cb" type="checkbox"/>
+        <div class="step-body">
+          <div class="step-top">
+            <div class="step-title">Regenerate mocks — paste this prompt into Claude Code if needed</div>
+            <span class="step-time t-yellow">prompt</span>
+          </div>
+          <div class="story">If the mock files get moved or consumed by the agents, use this prompt to regenerate them instantly without interrupting the demo.</div>
+          <div style="margin-top:.45rem;position:relative;">
+            <textarea id="mock-prompt" readonly onclick="this.select()"
+              style="width:100%;min-height:220px;background:#0a1628;border:1px solid #3b82f6;border-radius:8px;
+                     color:#bae6fd;font-family:'SF Mono','Fira Code',monospace;font-size:.75rem;
+                     padding:.65rem .8rem;resize:none;line-height:1.55;cursor:text;"
+>Create 5 demo mock files in demo/mock_files/:
+
+1. arquivo_mockA.sql — clean SELECT with JOINs, GROUP BY, WHERE, ORDER BY, LIMIT. No issues.
+2. arquivo_mockB.sql — broken SQL: SELECT with column names but completely missing the FROM clause.
+3. arquivo_mockC.py — clean hello world with a typed greet(name: str) -> str function. No issues.
+4. arquivo_mockD.py — a classify_order() function with deeply nested if/elif chains (3 levels deep). Syntactically valid but flag-worthy.
+5. arquivo_mockE_meet_transcription.md — sprint planning meeting with exactly 5 action items (owner + deadline each), 2 decisions, 1 blocker.
+
+Keep each file under 20 lines. No comments. Use the exact filenames above.</textarea>
+            <button onclick="navigator.clipboard.writeText(document.getElementById('mock-prompt').value)"
+              style="position:absolute;top:.5rem;right:.5rem;
+                     padding:.25rem .6rem;background:#0f2040;border:1px solid #3b82f6;
+                     border-radius:5px;color:#93c5fd;font-size:.72rem;cursor:pointer;">
+              Copy
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
   <!-- ── Opening ── -->
   <div class="section s-yellow" id="sec-open">
     <div class="sec-header open" onclick="toggleSec('sec-open')">
