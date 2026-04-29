@@ -176,7 +176,7 @@ def _build_html(m: dict, repo: str) -> str:
                 padding: 1.5rem; margin-bottom: 2rem; page-break-inside: avoid; }}
     .section h2 {{ font-size: 1rem; font-weight: 600; margin-bottom: 1.25rem;
                    color: #8b949e; text-transform: uppercase; letter-spacing: .08em; }}
-    .chart-wrap {{ max-width: 700px; }}
+    .chart-wrap {{ max-width: 100%; overflow: hidden; }}
     .before-after {{ display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }}
     .ba-box {{ background: #0d1117; border-radius: 8px; padding: 1.25rem; text-align: center; }}
     .ba-box .big {{ font-size: 3rem; font-weight: 800; }}
