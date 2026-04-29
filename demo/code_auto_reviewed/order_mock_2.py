@@ -1,11 +1,16 @@
-```python
 import os
 import json
 
-UPLOAD_DIR = os.environ.get("UPLOAD_DIR")
+UPLOAD_DIR = os.environ.get("UPLOAD_DIR", "/uploads")
+assert UPLOAD_DIR
+
+REPORTS_DIR = "/reports"
+ALLOWED_DIR = os.environ.get("ALLOWED_DIR", "/sessions")
 
 def read_invoice(filename):
+    filename = os.path.basename(filename)
     path = os.path.join(UPLOAD_DIR, filename)
+    assert path.startswith(UPLOAD_DIR)
     try:
         with open(path, "r") as f:
             return f.read()
@@ -13,11 +18,14 @@ def read_invoice(filename):
         return None
 
 def load_session(session_file):
+    session_file = os.path.realpath(session_file)
+    assert session_file.startswith(ALLOWED_DIR)
     with open(session_file, "r") as f:
         return json.load(f)
 
 def save_report(name, content):
-    path = os.path.join("/reports", f"{name}.txt")
+    name = os.path.basename(name)
+    path = os.path.join(REPORTS_DIR, f"{name}.txt")
     with open(path, "w") as f:
         f.write(content)
 
@@ -28,6 +36,7 @@ def list_files(directory):
         return []
 
 def delete_temp(filename):
+    filename = os.path.basename(filename)
     path = os.path.join("/tmp", filename)
     if os.path.exists(path) and os.path.isfile(path):
         try:
@@ -40,4 +49,3 @@ def get_file_size(path):
         return os.path.getsize(path)
     except OSError:
         return None
-```
