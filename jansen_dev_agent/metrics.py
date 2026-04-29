@@ -129,8 +129,13 @@ def compute(prs: list[dict], include_mock: bool = True) -> dict:
 
 def _build_html(m: dict, repo: str) -> str:
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-    days_js = str(m["days"])
-    counts_js = str(m["prs_per_day"])
+    # Show only last 30 days, most recent on the right
+    days_all = m["days"]
+    counts_all = m["prs_per_day"]
+    days_30 = days_all[-30:]
+    counts_30 = counts_all[-30:]
+    days_js = str(days_30)
+    counts_js = str(counts_30)
 
     rows = ""
     for pr in sorted(m["prs"], key=lambda p: p["created_at"], reverse=True)[:20]:
@@ -221,7 +226,7 @@ def _build_html(m: dict, repo: str) -> str:
   <div class="section">
     <h2>PRs over time</h2>
     <div class="chart-wrap">
-      <canvas id="timeline" height="90"></canvas>
+      <canvas id="timeline" height="120"></canvas>
     </div>
   </div>
 
@@ -262,7 +267,7 @@ def _build_html(m: dict, repo: str) -> str:
       options: {{
         plugins: {{ legend: {{ display: false }} }},
         scales: {{
-          x: {{ ticks: {{ color: "#8b949e" }}, grid: {{ color: "#21262d" }} }},
+          x: {{ ticks: {{ color: "#8b949e", font: {{ size: 9 }}, maxRotation: 45, minRotation: 45 }}, grid: {{ color: "#21262d" }} }},
           y: {{ ticks: {{ color: "#8b949e", stepSize: 1 }}, grid: {{ color: "#21262d" }} }}
         }}
       }}
