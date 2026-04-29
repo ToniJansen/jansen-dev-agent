@@ -305,14 +305,15 @@ def generate_pdf(html_path: Path) -> Path:
     pdf_path = html_path.with_suffix(".pdf")
     with sync_playwright() as p:
         browser = p.chromium.launch()
-        page = browser.new_page()
+        page = browser.new_page(viewport={"width": 1200, "height": 900})
         page.goto(f"file://{html_path.absolute()}", wait_until="networkidle")
-        page.wait_for_timeout(1500)  # let Chart.js finish rendering
+        page.wait_for_timeout(2500)  # let Chart.js finish rendering
         page.pdf(
             path=str(pdf_path),
             format="A4",
+            landscape=True,
             print_background=True,
-            margin={"top": "20mm", "bottom": "20mm", "left": "15mm", "right": "15mm"},
+            margin={"top": "15mm", "bottom": "15mm", "left": "15mm", "right": "15mm"},
         )
         browser.close()
     return pdf_path
