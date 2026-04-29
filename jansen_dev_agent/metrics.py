@@ -19,8 +19,9 @@ from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).parent / ".env")
 
-_BASE = "https://api.github.com"
-_REPORT = Path(__file__).parent.parent / "metrics_report.html"
+_BASE      = "https://api.github.com"
+_REPORT    = Path(__file__).parent.parent / "metrics_report.html"
+_MOCK_FILE = Path(__file__).parent.parent / "demo" / "mock_prs.json"
 
 
 # ── GitHub helpers ─────────────────────────────────────────────────────────
@@ -30,6 +31,13 @@ def _headers() -> dict:
         "Authorization": f"token {os.environ['GITHUB_TOKEN']}",
         "Accept": "application/vnd.github.v3+json",
     }
+
+
+def _load_mock_prs() -> list[dict]:
+    if not _MOCK_FILE.exists():
+        return []
+    import json
+    return json.loads(_MOCK_FILE.read_text(encoding="utf-8"))
 
 
 def _fetch_agent_prs(repo: str) -> list[dict]:
@@ -69,7 +77,11 @@ def _file_type(title: str) -> str:
 
 # ── Metrics computation ────────────────────────────────────────────────────
 
-def compute(prs: list[dict]) -> dict:
+def compute(prs: list[dict], include_mock: bool = True) -> dict:
+    if include_mock:
+        mock = _load_mock_prs()
+        real_urls = {p["html_url"] for p in prs}
+        prs = prs + [m for m in mock if m["html_url"] not in real_urls]
     prs_by_day: dict[str, int] = defaultdict(int)
     total_c = total_w = total_i = 0
     py_count = sql_count = 0
@@ -193,17 +205,17 @@ def _build_html(m: dict, repo: str) -> str:
 
   <div class="cards">
     <div class="card"><div class="val white">{m['total_prs']}</div>
-      <div class="lbl">PRs opened by agent</div></div>
-    <div class="card"><div class="val blue">{m['py_count']}</div>
-      <div class="lbl">Python files reviewed</div></div>
-    <div class="card"><div class="val yellow">{m['sql_count']}</div>
-      <div class="lbl">SQL files reviewed</div></div>
+      <div class="lbl">Total PRs by agent</div></div>
+    <div class="card"><div class="val green">{m['approved']}</div>
+      <div class="lbl">Auto-merged ✅</div></div>
+    <div class="card"><div class="val red">{m['needs_fixes']}</div>
+      <div class="lbl">Needs triage 🔴</div></div>
     <div class="card"><div class="val red">{m['total_critical']}</div>
       <div class="lbl">Critical issues found</div></div>
     <div class="card"><div class="val yellow">{m['total_warning']}</div>
       <div class="lbl">Warnings flagged</div></div>
-    <div class="card"><div class="val green">{m['approved']}</div>
-      <div class="lbl">Auto-approved</div></div>
+    <div class="card"><div class="val blue">{m['py_count']}</div>
+      <div class="lbl">Python files reviewed</div></div>
   </div>
 
   <div class="section">

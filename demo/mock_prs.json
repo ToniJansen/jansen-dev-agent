@@ -1,0 +1,142 @@
+[
+  {
+    "title": "[Agent] Code review fixes — user_service.py (20260401020312)",
+    "created_at": "2026-04-01T02:03:12Z",
+    "html_url": "https://github.com/ToniJansen/jansen-dev-agent/pull/1001",
+    "state": "open",
+    "body": "## Automated Code Review\n\n```\n🔍 user_service.py — 02:03\n🔴 3C  🟡 4W  🔵 2I\n\n🔴 L12: Hardcoded admin password → use os.environ\n🔴 L34: SQL injection via f-string → use parameterized query\n🔴 L67: pickle.load() on user input → use json.loads()\n\nNEEDS FIXES ❌\n```"
+  },
+  {
+    "title": "[Agent] Code review fixes — db_connector.py (20260402020145)",
+    "created_at": "2026-04-02T02:01:45Z",
+    "html_url": "https://github.com/ToniJansen/jansen-dev-agent/pull/1002",
+    "state": "closed",
+    "body": "## Automated Code Review\n\n```\n🔍 db_connector.py — 02:01\n🔴 1C  🟡 2W  🔵 1I\n\n🔴 L8: Hardcoded DB password → use os.environ['DB_PASSWORD']\n\nNEEDS FIXES ❌\n```"
+  },
+  {
+    "title": "[Agent] Code review fixes — cache_manager.py (20260403021503)",
+    "created_at": "2026-04-03T02:15:03Z",
+    "html_url": "https://github.com/ToniJansen/jansen-dev-agent/pull/1003",
+    "state": "closed",
+    "body": "## Automated Code Review\n\n```\n🔍 cache_manager.py — 02:15\n🔴 0C  🟡 1W  🔵 2I\n\n🟡 L22: No expiry on cache keys → add TTL parameter\n\nAPPROVED ✅\n```"
+  },
+  {
+    "title": "[Agent] Code review fixes — auth_middleware.py (20260405020822)",
+    "created_at": "2026-04-05T02:08:22Z",
+    "html_url": "https://github.com/ToniJansen/jansen-dev-agent/pull/1004",
+    "state": "open",
+    "body": "## Automated Code Review\n\n```\n🔍 auth_middleware.py — 02:08\n🔴 2C  🟡 3W  🔵 1I\n\n🔴 L15: JWT secret hardcoded → use os.environ['JWT_SECRET']\n🔴 L44: Comparing plaintext password → use bcrypt.checkpw()\n\nNEEDS FIXES ❌\n```"
+  },
+  {
+    "title": "[Agent] Code review fixes — email_sender.py (20260407021102)",
+    "created_at": "2026-04-07T02:11:02Z",
+    "html_url": "https://github.com/ToniJansen/jansen-dev-agent/pull/1005",
+    "state": "open",
+    "body": "## Automated Code Review\n\n```\n🔍 email_sender.py — 02:11\n🔴 1C  🟡 2W  🔵 0I\n\n🔴 L9: SMTP password hardcoded → use os.environ['SMTP_PASSWORD']\n\nNEEDS FIXES ❌\n```"
+  },
+  {
+    "title": "[Agent] Code review fixes — file_upload.py (20260409020934)",
+    "created_at": "2026-04-09T02:09:34Z",
+    "html_url": "https://github.com/ToniJansen/jansen-dev-agent/pull/1006",
+    "state": "open",
+    "body": "## Automated Code Review\n\n```\n🔍 file_upload.py — 02:09\n🔴 2C  🟡 1W  🔵 1I\n\n🔴 L7: Path traversal via UPLOAD_DIR + filename → use os.path.basename()\n🔴 L19: os.system() with user input → use subprocess.run() with list\n\nNEEDS FIXES ❌\n```"
+  },
+  {
+    "title": "[Agent] Code review fixes — config_loader.py (20260410021418)",
+    "created_at": "2026-04-10T02:14:18Z",
+    "html_url": "https://github.com/ToniJansen/jansen-dev-agent/pull/1007",
+    "state": "closed",
+    "body": "## Automated Code Review\n\n```\n🔍 config_loader.py — 02:14\n🔴 0C  🟡 2W  🔵 3I\n\n🟡 L11: No default value for missing config keys → add .get() with defaults\n🟡 L28: Config reloaded on every call → add caching\n\nAPPROVED ✅\n```"
+  },
+  {
+    "title": "[Agent] Code review fixes — webhook_handler.py (20260412020311)",
+    "created_at": "2026-04-12T02:03:11Z",
+    "html_url": "https://github.com/ToniJansen/jansen-dev-agent/pull/1008",
+    "state": "open",
+    "body": "## Automated Code Review\n\n```\n🔍 webhook_handler.py — 02:03\n🔴 2C  🟡 2W  🔵 0I\n\n🔴 L5: whsec_hardcoded_secret → use os.environ['WEBHOOK_SECRET']\n🔴 L31: No signature validation on incoming webhook → add HMAC check\n\nNEEDS FIXES ❌\n```"
+  },
+  {
+    "title": "[Agent] Code review fixes — report_generator.py (20260413021633)",
+    "created_at": "2026-04-13T02:16:33Z",
+    "html_url": "https://github.com/ToniJansen/jansen-dev-agent/pull/1009",
+    "state": "open",
+    "body": "## Automated Code Review\n\n```\n🔍 report_generator.py — 02:16\n🔴 1C  🟡 3W  🔵 2I\n\n🔴 L22: os.system('echo ' + content) → command injection → use Path.write_text()\n\nNEEDS FIXES ❌\n```"
+  },
+  {
+    "title": "[Agent] Code review fixes — rate_limiter.py (20260414020512)",
+    "created_at": "2026-04-14T02:05:12Z",
+    "html_url": "https://github.com/ToniJansen/jansen-dev-agent/pull/1010",
+    "state": "closed",
+    "body": "## Automated Code Review\n\n```\n🔍 rate_limiter.py — 02:05\n🔴 0C  🟡 1W  🔵 2I\n\n🟡 L18: In-memory store resets on restart → consider Redis backend\n\nAPPROVED ✅\n```"
+  },
+  {
+    "title": "[Agent] Code review fixes — session_store.py (20260416021044)",
+    "created_at": "2026-04-16T02:10:44Z",
+    "html_url": "https://github.com/ToniJansen/jansen-dev-agent/pull/1011",
+    "state": "open",
+    "body": "## Automated Code Review\n\n```\n🔍 session_store.py — 02:10\n🔴 1C  🟡 2W  🔵 1I\n\n🔴 L14: pickle.load(session_file) → arbitrary code execution → use json\n\nNEEDS FIXES ❌\n```"
+  },
+  {
+    "title": "[Agent] Code review fixes — payment_gateway.py (20260417020803)",
+    "created_at": "2026-04-17T02:08:03Z",
+    "html_url": "https://github.com/ToniJansen/jansen-dev-agent/pull/1012",
+    "state": "open",
+    "body": "## Automated Code Review\n\n```\n🔍 payment_gateway.py — 02:08\n🔴 2C  🟡 2W  🔵 1I\n\n🔴 L3: sk_prod_hardcoded_key → use os.environ['STRIPE_SECRET_KEY']\n🔴 L28: No request timeout → add timeout=10\n\nNEEDS FIXES ❌\n```"
+  },
+  {
+    "title": "[Agent] Code review fixes — health_check.py (20260419021322)",
+    "created_at": "2026-04-19T02:13:22Z",
+    "html_url": "https://github.com/ToniJansen/jansen-dev-agent/pull/1013",
+    "state": "closed",
+    "body": "## Automated Code Review\n\n```\n🔍 health_check.py — 02:13\n🔴 0C  🟡 1W  🔵 1I\n\n🟡 L9: No timeout on health endpoint requests → add timeout=5\n\nAPPROVED ✅\n```"
+  },
+  {
+    "title": "[Agent] Code review fixes — invoice_parser.py (20260420020611)",
+    "created_at": "2026-04-20T02:06:11Z",
+    "html_url": "https://github.com/ToniJansen/jansen-dev-agent/pull/1014",
+    "state": "open",
+    "body": "## Automated Code Review\n\n```\n🔍 invoice_parser.py — 02:06\n🔴 1C  🟡 2W  🔵 2I\n\n🔴 L11: UPLOAD_DIR + '/' + filename → path traversal → use Path(UPLOAD_DIR) / Path(filename).name\n\nNEEDS FIXES ❌\n```"
+  },
+  {
+    "title": "[Agent] Code review fixes — notification_service.py (20260421021145)",
+    "created_at": "2026-04-21T02:11:45Z",
+    "html_url": "https://github.com/ToniJansen/jansen-dev-agent/pull/1015",
+    "state": "closed",
+    "body": "## Automated Code Review\n\n```\n🔍 notification_service.py — 02:11\n🔴 0C  🟡 2W  🔵 1I\n\n🟡 L14: No retry on failed sends → add exponential backoff\n🟡 L33: Logging full response body → may leak PII\n\nAPPROVED ✅\n```"
+  },
+  {
+    "title": "[Agent] Code review fixes — search_service.py (20260422020934)",
+    "created_at": "2026-04-22T02:09:34Z",
+    "html_url": "https://github.com/ToniJansen/jansen-dev-agent/pull/1016",
+    "state": "open",
+    "body": "## Automated Code Review\n\n```\n🔍 search_service.py — 02:09\n🔴 1C  🟡 3W  🔵 1I\n\n🔴 L18: f\"SELECT ... WHERE name = '{query}'\" → SQLi → use parameterized query\n\nNEEDS FIXES ❌\n```"
+  },
+  {
+    "title": "[Agent] Code review fixes — data_exporter.py (20260423021256)",
+    "created_at": "2026-04-23T02:12:56Z",
+    "html_url": "https://github.com/ToniJansen/jansen-dev-agent/pull/1017",
+    "state": "open",
+    "body": "## Automated Code Review\n\n```\n🔍 data_exporter.py — 02:12\n🔴 1C  🟡 1W  🔵 2I\n\n🔴 L27: os.system(f\"zip {name} {path}\") → command injection → use zipfile module\n\nNEEDS FIXES ❌\n```"
+  },
+  {
+    "title": "[Agent] Code review fixes — background_worker.py (20260424020415)",
+    "created_at": "2026-04-24T02:04:15Z",
+    "html_url": "https://github.com/ToniJansen/jansen-dev-agent/pull/1018",
+    "state": "closed",
+    "body": "## Automated Code Review\n\n```\n🔍 background_worker.py — 02:04\n🔴 0C  🟡 2W  🔵 2I\n\n🟡 L8: No max_retries on task queue → add retry limit\n🟡 L31: Blocking sleep in async context → use asyncio.sleep()\n\nAPPROVED ✅\n```"
+  },
+  {
+    "title": "[Agent] Code review fixes — api_client.py (20260426021033)",
+    "created_at": "2026-04-26T02:10:33Z",
+    "html_url": "https://github.com/ToniJansen/jansen-dev-agent/pull/1019",
+    "state": "open",
+    "body": "## Automated Code Review\n\n```\n🔍 api_client.py — 02:10\n🔴 2C  🟡 1W  🔵 0I\n\n🔴 L4: api_key = 'sk_live_hardcoded' → use os.environ\n🔴 L19: requests.post() without timeout → add timeout=10\n\nNEEDS FIXES ❌\n```"
+  },
+  {
+    "title": "[Agent] Code review fixes — metrics_collector.py (20260427020748)",
+    "created_at": "2026-04-27T02:07:48Z",
+    "html_url": "https://github.com/ToniJansen/jansen-dev-agent/pull/1020",
+    "state": "closed",
+    "body": "## Automated Code Review\n\n```\n🔍 metrics_collector.py — 02:07\n🔴 0C  🟡 1W  🔵 3I\n\n🟡 L22: Metrics flushed every request → batch every 100 or on timer\n\nAPPROVED ✅\n```"
+  }
+]

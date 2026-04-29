@@ -71,6 +71,16 @@ def _open_pr(repo: str, title: str, body: str, head: str, base: str) -> str:
     return r.json()["html_url"]
 
 
+def merge_pr(repo: str, pr_number: int) -> None:
+    """Auto-merge a PR that passed all quality gates."""
+    requests.put(
+        f"{_BASE}/repos/{repo}/pulls/{pr_number}/merge",
+        headers=_headers(),
+        json={"merge_method": "squash", "commit_title": f"[Agent] Auto-merged PR #{pr_number} — no critical issues"},
+        timeout=10,
+    ).raise_for_status()
+
+
 def open_review_pr(
     filename: str,
     review: str,

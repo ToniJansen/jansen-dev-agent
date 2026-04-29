@@ -11,7 +11,7 @@ load_dotenv(Path(__file__).parent / ".env")
 from reviewer import review_file
 from sql_reviewer import review_sql
 from code_fixer import fix_file
-from github_pr import open_review_pr
+from github_pr import open_review_pr, merge_pr
 from telegram_sender import send
 
 logging.basicConfig(
@@ -54,6 +54,14 @@ def _run_tests(content: str, suffix: str) -> str:
         Path(tmp_path).unlink(missing_ok=True)
 
 
+def _is_approved(report: str) -> bool:
+    return "APPROVED ✅" in report
+
+
+def _extract_pr_number(pr_url: str) -> int:
+    return int(pr_url.rstrip("/").split("/")[-1])
+
+
 def _pull() -> None:
     result = subprocess.run(
         ["git", "pull", "--rebase"],
@@ -85,8 +93,16 @@ def _process(target: Path) -> None:
     log.info("Tests (fixed):    %s", test_after.splitlines()[-1] if test_after else "")
 
     pr_url = open_review_pr(target.name, report, fixed, test_before, test_after)
-    send(f"🔗 PR: {pr_url}")
-    log.info("PR opened: %s", pr_url)
+
+    if _is_approved(report):
+        repo = os.environ["GITHUB_REPO"]
+        pr_number = _extract_pr_number(pr_url)
+        merge_pr(repo, pr_number)
+        send(f"✅ *{target.name}* — auto-merged. No critical issues found.\n🔗 {pr_url}")
+        log.info("Auto-merged: %s", pr_url)
+    else:
+        send(f"🔴 *{target.name}* — needs triage. PR open for review.\n🔗 {pr_url}")
+        log.info("Needs triage: %s", pr_url)
 
 
 def main() -> None:
