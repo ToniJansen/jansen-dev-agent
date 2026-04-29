@@ -76,13 +76,16 @@ async def start(update: Update, _context: ContextTypes.DEFAULT_TYPE) -> None:
         await update.message.reply_text("🔧 Bot is under maintenance. Please try again later.")
         return
     await update.message.reply_text(
-        "*@jansen\\_dev\\_agent\\_bot* ready 🤖\n\n"
-        "Send me:\n"
-        "• A `.py` file or code snippet → Python code review\n"
-        "• A `.sql` file or SQL query → Multi-dialect SQL review\n"
-        "• A meeting transcript (`.md` or text) → Action items & decisions\n"
-        "• A voice note or audio file 🎙️ → Transcribed & routed automatically\n\n"
-        "_Scheduled: code review at 02:00 · meeting todos at 07:00_",
+        "*@jansen\\_dev\\_agent\\_bot* — autonomous code review & meeting intelligence 🤖\n\n"
+        "*What I can do:*\n"
+        "🐍 `.py` file or Python snippet → security & quality review + auto-fix PR on GitHub\n"
+        "🗄️ `.sql` file or SQL query → multi-dialect analysis (PostgreSQL, BigQuery, T-SQL…)\n"
+        "📋 Meeting transcript (`.md` or text) → decisions, action items & blockers\n"
+        "🎙️ Voice note or audio (up to 60s) → transcribed & routed automatically\n"
+        "📊 /report → PDF metrics dashboard with live GitHub data\n\n"
+        "*Running 24/7:*\n"
+        "• 02:00 — overnight code review of pending files\n"
+        "• 07:00 — morning processing of meeting notes",
         parse_mode="Markdown",
     )
 
