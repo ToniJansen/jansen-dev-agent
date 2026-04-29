@@ -213,8 +213,12 @@ def _build_html(m: dict, repo: str) -> str:
     *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
     body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
            background: #f9fafb; color: #111827; min-height: 100vh; padding: 2rem; }}
-    h1 {{ font-size: 1.6rem; font-weight: 700; margin-bottom: .25rem; color: #111827; }}
-    .sub {{ color: #6b7280; font-size: .9rem; margin-bottom: 2rem; }}
+    .report-header {{ margin-bottom: 2rem; }}
+    .report-header .eyebrow {{ font-size: .75rem; font-weight: 700; color: #2563eb;
+                               text-transform: uppercase; letter-spacing: .12em;
+                               margin-bottom: .35rem; }}
+    h1 {{ font-size: 1.8rem; font-weight: 800; color: #111827; margin-bottom: .3rem; }}
+    .sub {{ color: #6b7280; font-size: .875rem; margin-bottom: 0; }}
     .cards {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
               gap: 1rem; margin-bottom: 2rem; page-break-inside: avoid; }}
     .card {{ background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px;
@@ -256,11 +260,14 @@ def _build_html(m: dict, repo: str) -> str:
   </style>
 </head>
 <body>
-  <h1>🤖 jansen_dev_agent — Activity Dashboard</h1>
-  <p class="sub">
-    Repo: <a class="repo-link" href="https://github.com/{repo}" target="_blank">{repo}</a>
-    &nbsp;·&nbsp; Generated: {now}
-  </p>
+  <div class="report-header">
+    <div class="eyebrow">GitHub Repository Report</div>
+    <h1>Agent PR Activity — {repo.split("/")[-1]}</h1>
+    <p class="sub">
+      <a class="repo-link" href="https://github.com/{repo}" target="_blank">github.com/{repo}</a>
+      &nbsp;·&nbsp; Generated: {now}
+    </p>
+  </div>
 
   <div class="cards">
     <div class="card"><div class="val slate">{m['total_prs']}</div>
