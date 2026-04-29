@@ -216,6 +216,37 @@ Flow:
 
 ---
 
+## Task 5h — Auto-merge + mock historical PRs ✅
+
+**Auto-merge logic (`overnight_agent.py` + `github_pr.py`):**
+- `_is_approved(report)` — checks `"APPROVED ✅"` in LLM report (0 CRITICALs)
+- `_extract_pr_number(pr_url)` — parses PR number from URL
+- `merge_pr(repo, pr_number)` in `github_pr.py` — GitHub squash merge via `PUT /repos/{repo}/pulls/{n}/merge`
+- `open_review_pr()` updated — `test_before`/`test_after` optional params, Test Results section in PR body
+- Flow: APPROVED ✅ → auto-merge → Telegram "auto-merged" · NEEDS FIXES ❌ → leave open for triage
+
+**Mock historical PRs (`demo/mock_prs.json`):**
+- 20 PRs spread April 1–27, 2026 (before GitHub repo existed)
+- ~13 NEEDS FIXES ❌ (realistic majority), ~7 APPROVED ✅
+- `compute(include_mock=True)` merges mock + real PRs, deduped by `html_url`
+- Enriches timeline chart from flat line to 27-day activity chart
+
+**Demo file (`demo/code_auto_reviewed/payment_utils_clean.py`):**
+- All credentials from `os.environ`, all requests have `timeout=10`, no unsafe ops
+- Passes all 10 security tests → triggers APPROVED ✅ path → demonstrates auto-merge
+
+**Dashboard cards updated:**
+- OLD: Total PRs | Python | SQL | Critical | Warnings | Auto-approved
+- NEW: Total PRs | Auto-merged ✅ (green) | Needs triage 🔴 (red) | Critical | Warnings | Python files
+
+- [x] **Step 1:** Add `merge_pr()` to `github_pr.py`
+- [x] **Step 2:** Add auto-merge logic to `overnight_agent.py`
+- [x] **Step 3:** Create `demo/mock_prs.json` with 20 historical PRs
+- [x] **Step 4:** Update `metrics.py` — `_load_mock_prs()`, `compute(include_mock=True)`, new card layout
+- [x] **Step 5:** Create `demo/code_auto_reviewed/payment_utils_clean.py` (clean demo file)
+
+---
+
 ## Task 5e — `greeter.py` ✅
 
 Groq call for language-aware greetings and off-topic handling.
@@ -331,6 +362,8 @@ One-shot deploy script at `deploy.sh` in repo root. Sets up Ubuntu 22.04 on Orac
 - [x] Mock files in `demo/mocks/` — 4 Python + 4 SQL with planted issues
 - [x] Security tests in `demo/tests/` — 2 failures on original, 0 on fixed
 - [x] `/report` command → PDF delivered via Telegram (193 KB, Chart.js rendered)
+- [x] Auto-merge: APPROVED ✅ PRs squash-merged automatically; NEEDS FIXES left for triage
+- [x] Mock historical PRs: 20 PRs (Apr 1-27) enrich metrics chart to 27-day timeline
 - [x] `.env` not tracked by git
 - [x] Both scheduled jobs active in launchd
 - [ ] VPS running on Oracle Cloud with systemd service active
@@ -341,6 +374,7 @@ One-shot deploy script at `deploy.sh` in repo root. Sets up Ubuntu 22.04 on Orac
 
 | Hash | Description |
 |------|-------------|
+| `4012514` | feat: auto-merge approved PRs + mock historical data + updated metrics dashboard |
 | `aa806fa` | feat: /report command — PDF from live GitHub data via Playwright, sent via Telegram |
 | `ec4fe62` | feat: add metrics dashboard (GitHub API + HTML report + Chart.js) |
 | `bae1659` | feat: security test suite + before/after test results in PRs |
@@ -368,6 +402,7 @@ One-shot deploy script at `deploy.sh` in repo root. Sets up Ubuntu 22.04 on Orac
 | Task 5e — greeter.py | 10 min | ✅ Done |
 | Task 5f — Security tests | 15 min | ✅ Done |
 | Task 5g — metrics.py + /report | 20 min | ✅ Done |
+| Task 5h — Auto-merge + mock PRs | 15 min | ✅ Done |
 | Tasks 6–7 — Scheduled agents | 15 min | ✅ Done |
 | Task 8 — Interactive bot | 20 min | ✅ Done |
 | Task 9 — Testing | 20 min | ✅ Done |
