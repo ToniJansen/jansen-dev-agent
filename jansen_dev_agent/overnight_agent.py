@@ -1,6 +1,8 @@
 from __future__ import annotations
 import logging
+import os
 import subprocess
+import tempfile
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -23,6 +25,35 @@ PROJECT_ROOT = Path(__file__).parent.parent
 REVIEW_DIR   = PROJECT_ROOT / "demo" / "code_auto_reviewed"
 
 
+def _run_tests(content: str, suffix: str) -> str:
+    """Write content to a temp file and run pytest against demo/tests/."""
+    if suffix != ".py":
+        return "⚪ SQL files: no automated test suite."
+
+    tests_dir = PROJECT_ROOT / "demo" / "tests"
+    if not tests_dir.exists() or not list(tests_dir.glob("test_*.py")):
+        return "⚪ No test suite found."
+
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".py", delete=False, encoding="utf-8",
+        dir=PROJECT_ROOT / "demo" / "code_auto_reviewed",
+    ) as tmp:
+        tmp.write(content)
+        tmp_path = tmp.name
+
+    try:
+        env = os.environ.copy()
+        env["TEST_TARGET"] = tmp_path
+        result = subprocess.run(
+            ["python3", "-m", "pytest", str(tests_dir), "--tb=line", "-q", "--no-header"],
+            capture_output=True, text=True, env=env, timeout=30,
+            cwd=str(PROJECT_ROOT),
+        )
+        return (result.stdout + result.stderr).strip() or "(no output)"
+    finally:
+        Path(tmp_path).unlink(missing_ok=True)
+
+
 def _pull() -> None:
     result = subprocess.run(
         ["git", "pull", "--rebase"],
@@ -35,6 +66,7 @@ def _pull() -> None:
 
 def _process(target: Path) -> None:
     log.info("Reviewing: %s", target.name)
+    original = target.read_text(encoding="utf-8")
 
     if target.suffix == ".py":
         report = review_file(str(target))
@@ -44,8 +76,15 @@ def _process(target: Path) -> None:
     send(report)
     log.info("Review delivered: %s", target.name)
 
+    test_before = _run_tests(original, target.suffix)
+    log.info("Tests (original): %s", test_before.splitlines()[-1] if test_before else "")
+
     fixed = fix_file(str(target), report)
-    pr_url = open_review_pr(target.name, report, fixed)
+
+    test_after = _run_tests(fixed, target.suffix)
+    log.info("Tests (fixed):    %s", test_after.splitlines()[-1] if test_after else "")
+
+    pr_url = open_review_pr(target.name, report, fixed, test_before, test_after)
     send(f"🔗 PR: {pr_url}")
     log.info("PR opened: %s", pr_url)
 
