@@ -17,6 +17,7 @@ from pathlib import Path
 import base64
 
 import plotly.graph_objects as go
+import plotly.io as pio
 import requests
 from dotenv import load_dotenv
 
@@ -151,8 +152,11 @@ def _chart_png_b64(days: list[str], counts: list[int]) -> str:
         showlegend=False,
         bargap=0.3,
     )
-    img_bytes = fig.to_image(format="png", width=1000, height=240, scale=2)
-    return base64.b64encode(img_bytes).decode()
+    try:
+        img_bytes = fig.to_image(format="png", width=1000, height=240, scale=2)
+        return base64.b64encode(img_bytes).decode()
+    finally:
+        pio.kaleido.scope.shutdown_kaleido()
 
 
 # ── HTML report ────────────────────────────────────────────────────────────
