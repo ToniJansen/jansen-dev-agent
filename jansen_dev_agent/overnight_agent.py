@@ -3,6 +3,7 @@ import logging
 import os
 import subprocess
 import tempfile
+import time
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -117,7 +118,20 @@ def main() -> None:
 
     log.info("Found %d file(s) to review.", len(targets))
     for target in targets:
-        _process(target)
+        for attempt in range(3):
+            try:
+                _process(target)
+                break
+            except Exception as e:
+                if "429" in str(e) or "rate_limit" in str(e).lower():
+                    wait = 600 if attempt == 0 else 1800
+                    log.warning("Rate limit hit — waiting %ds before retry %d/3", wait, attempt + 1)
+                    send(f"⏳ Rate limit reached. Retrying {target.name} in {wait//60} min...")
+                    time.sleep(wait)
+                else:
+                    log.error("Failed to process %s: %s", target.name, e)
+                    send(f"⚠️ overnight_agent: failed on {target.name} — {e}")
+                    break
 
     log.info("Overnight agent complete.")
 
