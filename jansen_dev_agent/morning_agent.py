@@ -21,7 +21,7 @@ log = logging.getLogger("morning_agent")
 def main() -> None:
     meetings_dir = Path(os.environ.get("MEETINGS_DIR", "../demo/meetings")).resolve()
     processed_dir = meetings_dir / "processed"
-    processed_dir.mkdir(exist_ok=True)
+    processed_dir.mkdir(parents=True, exist_ok=True)
 
     files = list(meetings_dir.glob("*.md"))
     if not files:
