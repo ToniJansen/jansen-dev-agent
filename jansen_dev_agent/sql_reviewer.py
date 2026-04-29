@@ -17,6 +17,8 @@ SECURITY RULES — non-negotiable:
 
 Severity: CRITICAL (SQLi/DELETE without WHERE/DROP unsafe) | WARNING (SELECT */N+1/implicit cast) | INFO (style)
 
+Language: detect the language of the SQL content (comments, aliases, column names) and respond in that same language. Portuguese → Portuguese; Spanish → Spanish; English → English.
+
 Respond in this exact format (max 1200 chars):
 
 *🗄️ {filename} — dialect: {dialect} — {timestamp}*
