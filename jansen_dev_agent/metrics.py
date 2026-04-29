@@ -14,6 +14,9 @@ from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 
+import base64
+
+import plotly.graph_objects as go
 import requests
 from dotenv import load_dotenv
 
@@ -125,17 +128,38 @@ def compute(prs: list[dict], include_mock: bool = True) -> dict:
     }
 
 
+# ── Chart generation ───────────────────────────────────────────────────────
+
+def _chart_png_b64(days: list[str], counts: list[int]) -> str:
+    labels = [d[5:] for d in days[-14:]]  # "2026-04-29" → "04-29"
+    values = counts[-14:]
+
+    fig = go.Figure(go.Bar(
+        x=labels,
+        y=values,
+        marker_color="#1f6feb",
+        marker_line_width=0,
+    ))
+    fig.update_layout(
+        paper_bgcolor="#161b22",
+        plot_bgcolor="#161b22",
+        font=dict(color="#8b949e", size=11),
+        margin=dict(l=50, r=20, t=10, b=60),
+        height=240,
+        yaxis=dict(gridcolor="#21262d", tickformat="d", showline=False),
+        xaxis=dict(gridcolor="#30363d", showline=False),
+        showlegend=False,
+        bargap=0.3,
+    )
+    img_bytes = fig.to_image(format="png", width=1000, height=240, scale=2)
+    return base64.b64encode(img_bytes).decode()
+
+
 # ── HTML report ────────────────────────────────────────────────────────────
 
 def _build_html(m: dict, repo: str) -> str:
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-    # Show only last 14 days, labels as MM/DD
-    days_all = m["days"]
-    counts_all = m["prs_per_day"]
-    days_14 = [d[5:] for d in days_all[-14:]]   # "2026-04-29" → "04-29"
-    counts_14 = counts_all[-14:]
-    days_js = str(days_14)
-    counts_js = str(counts_14)
+    chart_b64 = _chart_png_b64(m["days"], m["prs_per_day"])
 
     rows = ""
     for pr in sorted(m["prs"], key=lambda p: p["created_at"], reverse=True)[:20]:
@@ -158,7 +182,6 @@ def _build_html(m: dict, repo: str) -> str:
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>jansen_dev_agent — Metrics</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
   <style>
     *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
     body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -226,7 +249,7 @@ def _build_html(m: dict, repo: str) -> str:
   <div class="section">
     <h2>PRs over time</h2>
     <div class="chart-wrap">
-      <canvas id="timeline" height="120"></canvas>
+      <img src="data:image/png;base64,{chart_b64}" style="width:100%;border-radius:8px;"/>
     </div>
   </div>
 
@@ -252,27 +275,6 @@ def _build_html(m: dict, repo: str) -> str:
     </table>
   </div>
 
-  <script>
-    new Chart(document.getElementById("timeline"), {{
-      type: "bar",
-      data: {{
-        labels: {days_js},
-        datasets: [{{
-          label: "Agent PRs",
-          data: {counts_js},
-          backgroundColor: "#1f6feb",
-          borderRadius: 5,
-        }}]
-      }},
-      options: {{
-        plugins: {{ legend: {{ display: false }} }},
-        scales: {{
-          x: {{ ticks: {{ color: "#8b949e", font: {{ size: 11 }} }}, grid: {{ color: "#21262d" }} }},
-          y: {{ ticks: {{ color: "#8b949e", stepSize: 1 }}, grid: {{ color: "#21262d" }} }}
-        }}
-      }}
-    }});
-  </script>
 </body>
 </html>"""
 
@@ -306,12 +308,10 @@ def generate_pdf(html_path: Path) -> Path:
     with sync_playwright() as p:
         browser = p.chromium.launch()
         page = browser.new_page(viewport={"width": 1200, "height": 900})
-        page.goto(f"file://{html_path.absolute()}", wait_until="networkidle")
-        page.wait_for_timeout(2500)  # let Chart.js finish rendering
+        page.goto(f"file://{html_path.absolute()}", wait_until="domcontentloaded")
         page.pdf(
             path=str(pdf_path),
             format="A4",
-            landscape=True,
             print_background=True,
             margin={"top": "15mm", "bottom": "15mm", "left": "15mm", "right": "15mm"},
         )
