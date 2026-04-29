@@ -142,17 +142,17 @@ def _chart_png_b64(days: list[str], counts: list[int]) -> str:
     fig = go.Figure(go.Bar(
         x=labels,
         y=values,
-        marker_color="#1f6feb",
+        marker_color="#3b82f6",
         marker_line_width=0,
     ))
     fig.update_layout(
-        paper_bgcolor="#161b22",
-        plot_bgcolor="#161b22",
-        font=dict(color="#8b949e", size=11),
+        paper_bgcolor="#ffffff",
+        plot_bgcolor="#ffffff",
+        font=dict(color="#6b7280", size=11),
         margin=dict(l=50, r=20, t=10, b=60),
         height=240,
-        yaxis=dict(gridcolor="#21262d", tickformat="d", showline=False),
-        xaxis=dict(gridcolor="#30363d", showline=False),
+        yaxis=dict(gridcolor="#f3f4f6", tickformat="d", showline=False),
+        xaxis=dict(gridcolor="#f3f4f6", showline=False),
         showlegend=False,
         bargap=0.3,
     )
@@ -212,43 +212,47 @@ def _build_html(m: dict, repo: str) -> str:
   <style>
     *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
     body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-           background: #0d1117; color: #e6edf3; min-height: 100vh; padding: 2rem; }}
-    h1 {{ font-size: 1.6rem; font-weight: 700; margin-bottom: .25rem; }}
-    .sub {{ color: #8b949e; font-size: .9rem; margin-bottom: 2rem; }}
+           background: #f9fafb; color: #111827; min-height: 100vh; padding: 2rem; }}
+    h1 {{ font-size: 1.6rem; font-weight: 700; margin-bottom: .25rem; color: #111827; }}
+    .sub {{ color: #6b7280; font-size: .9rem; margin-bottom: 2rem; }}
     .cards {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
               gap: 1rem; margin-bottom: 2rem; page-break-inside: avoid; }}
-    .card {{ background: #161b22; border: 1px solid #30363d; border-radius: 10px;
-             padding: 1.25rem; text-align: center; }}
+    .card {{ background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px;
+             padding: 1.25rem; text-align: center;
+             box-shadow: 0 1px 3px rgba(0,0,0,.06); }}
     .card .val {{ font-size: 2.4rem; font-weight: 800; line-height: 1; }}
-    .card .lbl {{ font-size: .78rem; color: #8b949e; margin-top: .4rem; text-transform: uppercase;
+    .card .lbl {{ font-size: .78rem; color: #9ca3af; margin-top: .4rem; text-transform: uppercase;
                   letter-spacing: .06em; }}
-    .red   {{ color: #f85149; }}
-    .yellow{{ color: #e3b341; }}
-    .blue  {{ color: #58a6ff; }}
-    .green {{ color: #3fb950; }}
-    .white {{ color: #e6edf3; }}
-    .section {{ background: #161b22; border: 1px solid #30363d; border-radius: 10px;
-                padding: 1.5rem; margin-bottom: 2rem; page-break-inside: avoid; }}
-    .section h2 {{ font-size: 1rem; font-weight: 600; margin-bottom: 1.25rem;
-                   color: #8b949e; text-transform: uppercase; letter-spacing: .08em; }}
-    .chart-wrap {{ max-width: 100%; overflow: hidden; }}
+    .red   {{ color: #dc2626; }}
+    .yellow{{ color: #d97706; }}
+    .blue  {{ color: #2563eb; }}
+    .green {{ color: #16a34a; }}
+    .slate {{ color: #374151; }}
+    .section {{ background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px;
+                padding: 1.5rem; margin-bottom: 2rem; page-break-inside: avoid;
+                box-shadow: 0 1px 3px rgba(0,0,0,.06); }}
+    .section h2 {{ font-size: .8rem; font-weight: 700; margin-bottom: 1.25rem;
+                   color: #9ca3af; text-transform: uppercase; letter-spacing: .1em; }}
+    .chart-wrap {{ max-width: 100%; overflow: hidden; background: #fff;
+                   border-radius: 8px; }}
     .before-after {{ display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }}
-    .ba-box {{ background: #0d1117; border-radius: 8px; padding: 1.25rem; text-align: center; }}
+    .ba-box {{ background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px;
+               padding: 1.25rem; text-align: center; }}
     .ba-box .big {{ font-size: 3rem; font-weight: 800; }}
-    .ba-box .desc {{ font-size: .85rem; color: #8b949e; margin-top: .5rem; }}
+    .ba-box .desc {{ font-size: .85rem; color: #6b7280; margin-top: .5rem; }}
     table {{ width: 100%; border-collapse: collapse; font-size: .875rem; }}
-    th {{ text-align: left; padding: .6rem .75rem; color: #8b949e; font-weight: 600;
-          border-bottom: 1px solid #30363d; }}
-    td {{ padding: .6rem .75rem; border-bottom: 1px solid #21262d; }}
-    td a {{ color: #58a6ff; text-decoration: none; }}
+    th {{ text-align: left; padding: .6rem .75rem; color: #6b7280; font-weight: 600;
+          border-bottom: 2px solid #f3f4f6; }}
+    td {{ padding: .6rem .75rem; border-bottom: 1px solid #f3f4f6; color: #374151; }}
+    td a {{ color: #2563eb; text-decoration: none; }}
     td a:hover {{ text-decoration: underline; }}
-    .badge {{ display: inline-block; padding: .15rem .55rem; border-radius: 99px;
-              font-size: .75rem; font-weight: 600; }}
-    .badge-python {{ background: #1f3a5f; color: #58a6ff; }}
-    .badge-sql    {{ background: #2d2600; color: #e3b341; }}
-    .badge-other  {{ background: #1c2a1c; color: #3fb950; }}
-    .repo-link {{ color: #8b949e; font-size: .85rem; }}
-    .repo-link a {{ color: #58a6ff; }}
+    .badge {{ display: inline-block; padding: .2rem .6rem; border-radius: 99px;
+              font-size: .72rem; font-weight: 600; }}
+    .badge-python {{ background: #eff6ff; color: #1d4ed8; }}
+    .badge-sql    {{ background: #fefce8; color: #a16207; }}
+    .badge-other  {{ background: #f0fdf4; color: #166534; }}
+    .repo-link {{ color: #6b7280; font-size: .85rem; }}
+    .repo-link a {{ color: #2563eb; }}
   </style>
 </head>
 <body>
@@ -259,7 +263,7 @@ def _build_html(m: dict, repo: str) -> str:
   </p>
 
   <div class="cards">
-    <div class="card"><div class="val white">{m['total_prs']}</div>
+    <div class="card"><div class="val slate">{m['total_prs']}</div>
       <div class="lbl">Total PRs by agent</div></div>
     <div class="card"><div class="val green">{m['approved']}</div>
       <div class="lbl">Auto-merged ✅</div></div>
