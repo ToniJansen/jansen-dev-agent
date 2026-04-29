@@ -40,12 +40,12 @@ Three entry points. One pipeline. No human in the loop.
               file_processor.py
               (token budget + injection defense)
                      │
-                  Groq API
-             llama-3.3-70b-versatile
-             whisper-large-v3-turbo (audio)
+                  Anthropic API (claude-sonnet-4-6)
+                  └─ fallback: Groq (llama-3.3-70b-versatile)
 
   Voice/audio messages:
-  🎙️ → transcriber.py → Groq Whisper → _detect_type() → same pipeline
+  🎙️ → transcriber.py → OpenAI Whisper → _detect_type() → same pipeline
+                         └─ fallback: Groq whisper-large-v3-turbo
 
   overnight_agent.py ──► git pull → review → fix → GitHub PR
   morning_agent.py   ──► scan meetings/ → process → archive
@@ -125,7 +125,7 @@ Send a transcript or `.md` file → structured intelligence report:
 ```
 
 ### Voice and audio messages
-Send a voice note or audio file → transcribed by Groq Whisper and routed automatically:
+Send a voice note or audio file → transcribed by OpenAI Whisper (Groq fallback) and routed automatically:
 
 - Language is auto-detected (Portuguese, English, or any Whisper-supported language)
 - Transcribed text shown first so you can verify what was understood
@@ -144,8 +144,8 @@ Send any text that isn't code, SQL, or meeting content → the bot responds in y
 
 | Component | Technology |
 |-----------|------------|
-| LLM | Groq — `llama-3.3-70b-versatile` (free tier) |
-| Speech-to-text | Groq — `whisper-large-v3-turbo` (free tier, auto-detect language) |
+| LLM | Anthropic — `claude-sonnet-4-6` (primary); Groq — `llama-3.3-70b-versatile` (fallback) |
+| Speech-to-text | OpenAI — `whisper-1` (primary); Groq — `whisper-large-v3-turbo` (fallback, auto-detect language) |
 | Bot framework | `python-telegram-bot` 22.x (async, long-polling) |
 | Scheduling | launchd (macOS) / systemd + cron (Linux) |
 | GitHub integration | REST API via `requests` — branch, commit, PR, auto-merge |
@@ -164,15 +164,15 @@ jansen_dev_agent/
 ├── bot_listener.py       # async Telegram bot
 ├── overnight_agent.py    # nightly code review agent
 ├── morning_agent.py      # daily meeting processor
-├── reviewer.py           # Python review → Groq
-├── sql_reviewer.py       # SQL review → Groq
-├── meeting_processor.py  # meeting analysis → Groq
-├── code_fixer.py         # LLM code fix → Groq
+├── reviewer.py           # Python review → Anthropic Claude (Groq fallback)
+├── sql_reviewer.py       # SQL review → Anthropic Claude (Groq fallback)
+├── meeting_processor.py  # meeting analysis → Anthropic Claude (Groq fallback)
+├── code_fixer.py         # LLM code fix → Anthropic Claude (Groq fallback)
 ├── github_pr.py          # GitHub PR creation
 ├── greeter.py            # language-aware greeting/redirect
 ├── metrics.py            # GitHub API metrics + Plotly chart + HTML + PDF via Playwright
 ├── file_processor.py     # token budget + injection defense
-├── transcriber.py        # Groq Whisper audio transcription (auto-detect language)
+├── transcriber.py        # OpenAI Whisper audio transcription (Groq fallback, auto-detect language)
 ├── telegram_sender.py    # Telegram API wrapper (text + document)
 ├── requirements.txt      # all Python dependencies
 └── .env.example
@@ -207,7 +207,8 @@ python3 -m playwright install chromium --with-deps
 # Linux: sudo apt-get install -y ffmpeg
 
 cp .env.example .env
-# fill in: GROQ_API_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, GITHUB_TOKEN, GITHUB_REPO
+# fill in: ANTHROPIC_API_KEY, OPENAI_API_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, GITHUB_TOKEN, GITHUB_REPO
+# optional: GROQ_API_KEY (fallback), GROQ_API_KEY_2, GROQ_API_KEY_3
 
 python3 bot_listener.py
 ```
@@ -224,8 +225,13 @@ The script installs dependencies, creates a systemd service for the bot, and reg
 ### Environment variables
 
 ```bash
-GROQ_API_KEY=gsk_...                   # Groq console
-GROQ_MODEL=llama-3.3-70b-versatile
+ANTHROPIC_API_KEY=sk-ant-...           # Anthropic console (primary LLM)
+ANTHROPIC_MODEL=claude-sonnet-4-6      # optional, this is the default
+OPENAI_API_KEY=sk-...                  # OpenAI console (primary STT)
+GROQ_API_KEY=gsk_...                   # Groq console (fallback LLM + STT)
+GROQ_API_KEY_2=gsk_...                 # optional Groq fallback key #2
+GROQ_API_KEY_3=gsk_...                 # optional Groq fallback key #3
+GROQ_MODEL=llama-3.3-70b-versatile     # Groq fallback model
 TELEGRAM_BOT_TOKEN=...                 # from @BotFather
 TELEGRAM_CHAT_ID=...                   # your Telegram user ID
 GITHUB_TOKEN=ghp_...                   # personal access token (repo scope)

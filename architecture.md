@@ -13,7 +13,7 @@ Three automated agents run continuously, turning code repositories and meeting n
 **Input:** Python source file (`order_manager.py`)  
 **What it does:**
 1. Reads the target file from disk
-2. Sends it to Groq LLM (llama-3.3-70b) with a structured security review prompt
+2. Sends it to Anthropic Claude (claude-sonnet-4-6) with a structured security review prompt; Groq llama-3.3-70b-versatile as fallback
 3. Receives a classified findings report (CRITICAL / WARNING / INFO)
 4. Applies fixes to the code
 5. Runs the test suite before and after the fix
@@ -31,7 +31,7 @@ Three automated agents run continuously, turning code repositories and meeting n
 **Input:** `.md` meeting files in `demo/meetings/`  
 **What it does:**
 1. Scans the meetings directory for unprocessed `.md` files
-2. Sends each file to Groq LLM with a meeting intelligence prompt
+2. Sends each file to Anthropic Claude with a meeting intelligence prompt; Groq fallback if unavailable
 3. Extracts: Decisions, Action Items (with owners + deadlines), Blockers, Open Questions, Signals
 4. Sends the structured report to Telegram
 5. Moves the processed file to `demo/meetings/processed/` so it is not re-processed
@@ -93,11 +93,12 @@ Three automated agents run continuously, turning code repositories and meeting n
         └────────────┼───────────────┘
                      │
                      ▼
-          ┌─────────────────────┐
-          │  Groq API           │
-          │  llama-3.3-70b-     │
-          │  versatile          │
-          └──────────┬──────────┘
+          ┌─────────────────────────────┐
+          │  Anthropic API              │
+          │  claude-sonnet-4-6          │
+          │  (Groq llama-3.3-70b        │
+          │   fallback on failure)      │
+          └──────────┬──────────────────┘
                      │
           ┌──────────┼──────────┐
           ▼          ▼          ▼
@@ -117,7 +118,7 @@ Three automated agents run continuously, turning code repositories and meeting n
                    SQL keywords  → sql_reviewer.py
                    otherwise     → meeting_processor.py
           │
-          ▼ (same Groq / Telegram path as above)
+          ▼ (same Anthropic/Groq → Telegram path as above)
 ```
 
 ---
@@ -129,8 +130,12 @@ Three automated agents run continuously, turning code repositories and meeting n
 | VPS | DigitalOcean Droplet | 137.184.60.205 |
 | Scheduling | crontab (root) | VPS |
 | Bot runtime | systemd service (`jansen-bot.service`) | VPS |
-| LLM API | Groq (free tier) | Cloud |
-| LLM model | llama-3.3-70b-versatile | Groq |
+| LLM API (primary) | Anthropic | Cloud |
+| LLM model (primary) | claude-sonnet-4-6 | Anthropic |
+| LLM API (fallback) | Groq | Cloud |
+| LLM model (fallback) | llama-3.3-70b-versatile | Groq |
+| Speech-to-text (primary) | OpenAI whisper-1 | Cloud |
+| Speech-to-text (fallback) | Groq whisper-large-v3-turbo | Cloud |
 | Version control | GitHub | `ToniJansen/jansen-dev-agent` |
 | Notifications | Telegram Bot API | `@jansen_dev_agent_bot` |
 | Report format | PDF (Plotly + ReportLab) | Generated on demand |
@@ -139,8 +144,11 @@ Three automated agents run continuously, turning code repositories and meeting n
 
 ## Key Design Decisions
 
-**Why Groq instead of OpenAI?**  
-Free tier with 100K tokens/day is sufficient for nightly review of a single file. No cost during demo phase.
+**Why Anthropic Claude as primary LLM?**  
+Claude Sonnet delivers stronger code reasoning and structured output consistency than open-weight models. Groq (llama-3.3-70b) is retained as a fallback so the system keeps running if Anthropic credits are exhausted.
+
+**Why OpenAI Whisper for voice transcription?**  
+OpenAI's hosted whisper-1 has better language detection and lower error rates for mixed-language audio (PT/EN). Groq's whisper-large-v3-turbo serves as fallback.
 
 **Why open a GitHub PR instead of patching in place?**  
 PRs preserve the human-in-the-loop gate. The agent cannot merge its own work — only the reviewer can. This is the architectural guarantee that keeps quality in human hands.
@@ -185,9 +193,9 @@ ai_principal_interview_demo/
 │   ├── overnight_agent.py     ← entry point: code review at 02:00
 │   ├── morning_agent.py       ← entry point: meeting todos at 07:00
 │   ├── bot_listener.py        ← entry point: Telegram long-polling (systemd)
-│   ├── reviewer.py            ← Groq: Python security + quality review
-│   ├── sql_reviewer.py        ← Groq: multi-dialect SQL review
-│   ├── meeting_processor.py   ← Groq: meeting → actions + decisions
+│   ├── reviewer.py            ← Anthropic Claude: Python security + quality review
+│   ├── sql_reviewer.py        ← Anthropic Claude: multi-dialect SQL review
+│   ├── meeting_processor.py   ← Anthropic Claude: meeting → actions + decisions
 │   ├── file_processor.py      ← pre-LLM: condense + sanitize input
 │   ├── telegram_sender.py     ← thin POST wrapper for Telegram Bot API
 │   ├── metrics.py             ← GitHub API → PDF report (/report command)

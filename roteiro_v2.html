@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Demo Script v2 — Jedo</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface2: #131f30;
+      --border: #334155;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --dim: #64748b;
+      --blue: #3b82f6;
+      --blue-bg: #0a1628;
+      --blue-light: #93c5fd;
+      --green: #22c55e;
+      --green-bg: #0d1f0d;
+      --green-light: #86efac;
+      --yellow: #f59e0b;
+      --yellow-bg: #1c1000;
+      --yellow-light: #fde68a;
+      --purple: #a855f7;
+      --purple-bg: #1a0a2e;
+      --purple-light: #d8b4fe;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 16px;
+      line-height: 1.6;
+      padding-bottom: 3rem;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      background: var(--surface);
+      border-bottom: 2px solid var(--border);
+      padding: .75rem 1.25rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-row {
+      display: flex; align-items: center;
+      justify-content: space-between; gap: 1rem;
+    }
+    .header-title { font-size: .95rem; font-weight: 800; color: #f8fafc; white-space: nowrap; }
+    .header-sub   { font-size: .75rem; color: var(--muted); margin-top: .1rem; }
+
+    .stopwatch { display: flex; align-items: center; gap: .6rem; flex-shrink: 0; }
+    .timer-display {
+      font-family: "SF Mono", "Fira Code", monospace;
+      font-size: 1.5rem; font-weight: 700; color: #f8fafc;
+      letter-spacing: .04em; min-width: 72px; text-align: right;
+    }
+    .timer-display.warn { color: var(--yellow); }
+    .timer-display.over { color: var(--red); animation: blink 1s step-start infinite; }
+    @keyframes blink { 50% { opacity: .4; } }
+
+    .sw-btn {
+      padding: .35rem .8rem; border-radius: 7px;
+      border: 1.5px solid var(--border); background: var(--bg);
+      color: var(--text); font-size: .8rem; font-weight: 600;
+      cursor: pointer; transition: background .15s; white-space: nowrap;
+    }
+    .sw-btn:hover { background: #263348; }
+    .sw-btn.start { border-color: var(--green); color: var(--green-light); }
+    .sw-btn.stop  { border-color: var(--red);   color: var(--red); }
+    .sw-btn.reset { border-color: var(--border); color: var(--dim); font-size: .72rem; }
+
+    .prog-wrap { margin-top: .6rem; display: flex; align-items: center; gap: .75rem; }
+    .prog-bar  { flex: 1; height: 5px; background: var(--border); border-radius: 99px; overflow: hidden; }
+    .prog-fill { height: 100%; background: var(--green); border-radius: 99px; transition: width .3s ease; width: 0%; }
+    .prog-label { font-size: .72rem; color: var(--dim); white-space: nowrap; }
+
+    .container { max-width: 700px; margin: 0 auto; padding: 1.25rem 1rem; }
+
+    /* ── SECTIONS ── */
+    .section {
+      border-radius: 14px; margin-bottom: 1rem;
+      overflow: hidden; border: 1.5px solid var(--border);
+    }
+    .section.s-blue   { border-color: var(--blue); }
+    .section.s-green  { border-color: var(--green); }
+    .section.s-yellow { border-color: #d97706; }
+
+    .sec-header {
+      display: flex; align-items: center; gap: .75rem;
+      padding: .95rem 1.25rem; cursor: pointer; user-select: none;
+      background: var(--surface); transition: background .15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .sec-header:hover { background: #263348; }
+    .sec-icon  { font-size: 1.3rem; flex-shrink: 0; }
+    .sec-info  { flex: 1; min-width: 0; }
+    .sec-title { font-size: 1rem; font-weight: 700; color: #f1f5f9; }
+    .sec-sub   { font-size: .78rem; color: var(--muted); margin-top: .1rem; }
+    .sec-arrow { font-size: .72rem; color: var(--dim); transition: transform .2s; flex-shrink: 0; }
+    .sec-header.open .sec-arrow { transform: rotate(90deg); }
+
+    .sec-body { display: none; background: var(--surface2); }
+    .sec-body.open { display: block; }
+
+    /* ── STEPS ── */
+    .step {
+      display: flex; align-items: flex-start; gap: .85rem;
+      padding: .9rem 1.25rem; border-top: 1px solid var(--border);
+      cursor: pointer; transition: background .12s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .step:hover { background: #0f1a2b; }
+    .step.done  { opacity: .4; }
+    .step.done .step-title { text-decoration: line-through; color: var(--dim); }
+
+    .step-cb {
+      width: 22px; height: 22px; flex-shrink: 0;
+      accent-color: var(--green); cursor: pointer; margin-top: .15rem;
+    }
+    .step-body  { flex: 1; min-width: 0; }
+    .step-top   { display: flex; align-items: baseline; justify-content: space-between; gap: .5rem; }
+    .step-title { font-size: .93rem; font-weight: 600; color: #f1f5f9; line-height: 1.4; }
+    .step-time  {
+      font-size: .7rem; font-weight: 700; white-space: nowrap; flex-shrink: 0;
+      padding: .1rem .45rem; border-radius: 99px; border: 1px solid;
+    }
+    .t-blue   { color: var(--blue-light);   border-color: var(--blue);   background: var(--blue-bg); }
+    .t-green  { color: var(--green-light);  border-color: var(--green);  background: var(--green-bg); }
+    .t-yellow { color: var(--yellow-light); border-color: var(--yellow); background: var(--yellow-bg); }
+
+    .quote-block {
+      background: var(--blue-bg); border-left: 3px solid var(--blue);
+      border-radius: 0 8px 8px 0; padding: .6rem .9rem; margin-top: .4rem;
+      font-size: .85rem; color: #bae6fd; font-style: italic; line-height: 1.5;
+    }
+    .action-block {
+      font-family: "SF Mono", "Fira Code", monospace;
+      background: var(--yellow-bg); border-left: 3px solid var(--yellow);
+      border-radius: 0 8px 8px 0; padding: .45rem .9rem; margin-top: .3rem;
+      font-size: .8rem; color: var(--yellow-light);
+    }
+    .inline-link {
+      display: block; margin-top: .4rem; padding: .5rem .85rem;
+      background: #0a1628; border: 1px solid var(--blue); border-radius: 8px;
+      color: var(--blue-light); font-size: .88rem; text-decoration: none;
+      font-weight: 600; transition: background .15s;
+    }
+    .inline-link:hover { background: #0f2040; }
+
+    .prompt-wrap { margin-top: .45rem; position: relative; }
+    .prompt-wrap textarea {
+      width: 100%; background: #0a1628; border: 1px solid #3b82f6;
+      border-radius: 8px; color: #bae6fd;
+      font-family: "SF Mono", "Fira Code", monospace;
+      font-size: .75rem; padding: .65rem .8rem;
+      padding-right: 3.5rem; resize: none; line-height: 1.55; cursor: text;
+    }
+    .prompt-wrap button {
+      position: absolute; top: .5rem; right: .5rem;
+      padding: .25rem .6rem; background: #0f2040;
+      border: 1px solid #3b82f6; border-radius: 5px;
+      color: #93c5fd; font-size: .72rem; cursor: pointer;
+    }
+    .phase-lbl {
+      font-size: .65rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: .1em; margin-top: .6rem; margin-bottom: .1rem;
+    }
+    .phase-lbl.before { color: var(--dim); }
+    .phase-lbl.after  { color: var(--green-light); }
+
+    .reset-btn {
+      display: block; width: 100%; padding: .8rem;
+      background: var(--surface); color: var(--dim);
+      border: 1.5px solid var(--border); border-radius: 10px;
+      font-size: .88rem; cursor: pointer; text-align: center;
+      transition: background .15s; margin-top: 1.25rem;
+    }
+    .reset-btn:hover { background: #263348; color: var(--muted); }
+
+    /* ── SLIDES ── */
+    .slide {
+      padding: 1rem 1.25rem;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .slide-agents { display: flex; gap: .55rem; margin-bottom: .75rem; }
+    .slide-agent {
+      flex: 1; border-radius: 10px; border: 1.5px solid var(--border);
+      padding: .6rem .75rem; background: var(--surface);
+    }
+    .slide-agent.a-yellow { border-color: #d97706; }
+    .slide-agent.a-green  { border-color: var(--green); }
+    .slide-agent.a-blue   { border-color: var(--blue); }
+    .slide-agent.dim      { opacity: .22; }
+    .slide-agent-icon { font-size: 1rem; line-height: 1; margin-bottom: .2rem; }
+    .slide-agent-name { font-size: .75rem; font-weight: 700; color: #f1f5f9; line-height: 1.3; }
+    .slide-agent-sub  { font-size: .62rem; color: var(--muted); margin-top: .1rem; }
+
+    .slide-flow { display: flex; align-items: center; gap: .35rem; flex-wrap: wrap; margin-bottom: .6rem; }
+    .slide-arrow { color: var(--dim); font-size: .78rem; }
+    .sn {
+      border-radius: 7px; border: 1px solid var(--border);
+      padding: .25rem .55rem; font-size: .72rem;
+      background: var(--surface); color: var(--muted); white-space: nowrap;
+    }
+    .sn-yellow { border-color: #d97706;      color: var(--yellow-light); background: var(--yellow-bg); }
+    .sn-blue   { border-color: var(--blue);   color: var(--blue-light);   background: var(--blue-bg); }
+    .sn-green  { border-color: var(--green);  color: var(--green-light);  background: var(--green-bg); }
+    .sn-purple { border-color: var(--purple); color: var(--purple-light); background: var(--purple-bg); }
+
+    .slide-llm { display: flex; gap: .5rem; align-items: stretch; margin-top: .5rem; }
+    .slide-llm-primary {
+      flex: 2; border: 1px solid var(--purple); border-radius: 8px;
+      padding: .45rem .7rem; background: var(--purple-bg);
+    }
+    .slide-llm-fallback {
+      flex: 1; border: 1px solid var(--border); border-radius: 8px;
+      padding: .45rem .7rem; background: var(--surface);
+    }
+    .slide-llm-label {
+      font-size: .58rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: .09em; margin-bottom: .2rem;
+    }
+    .slide-llm-label.primary  { color: var(--purple-light); }
+    .slide-llm-label.fallback { color: var(--dim); }
+    .slide-llm-model {
+      font-family: "SF Mono", "Fira Code", monospace;
+      font-size: .72rem; font-weight: 700; color: #f1f5f9;
+    }
+    .slide-llm-desc { font-size: .62rem; color: var(--muted); margin-top: .1rem; }
+    .slide-llm-sep { display: flex; align-items: center; color: var(--dim); font-size: .75rem; padding: 0 .1rem; }
+
+    .slide-outputs { display: flex; gap: .4rem; flex-wrap: wrap; margin-top: .6rem; }
+    .slide-out {
+      border-radius: 7px; border: 1px solid var(--border);
+      padding: .3rem .65rem; font-size: .72rem; font-weight: 600;
+      background: var(--surface); color: var(--text);
+      display: flex; align-items: center; gap: .3rem;
+    }
+    .slide-out-blue  { border-color: var(--blue);  color: var(--blue-light);  background: var(--blue-bg); }
+    .slide-out-green { border-color: var(--green); color: var(--green-light); background: var(--green-bg); }
+    .slide-out-dim   { border-color: var(--border); color: var(--muted); }
+
+    .slide-divider {
+      font-size: .6rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: .1em; color: var(--dim); margin: .6rem 0 .4rem;
+    }
+
+    @media (max-width: 480px) {
+      .header-title { font-size: .85rem; }
+      .timer-display { font-size: 1.25rem; }
+      .step { padding: .8rem 1rem; }
+      .sec-header { padding: .85rem 1rem; }
+      .slide { padding: .8rem 1rem; }
+      .slide-agents { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-row">
+    <div>
+      <div class="header-title">jansen_dev_agent — Demo Script</div>
+      <div class="header-sub">Jedo (CTO) via Henry &nbsp;·&nbsp; 6–8 min max</div>
+    </div>
+    <div class="stopwatch">
+      <div class="timer-display" id="timer">0:00</div>
+      <button class="sw-btn start" id="sw-btn" onclick="toggleTimer()">▶ Start</button>
+      <button class="sw-btn reset" onclick="resetTimer()">Reset</button>
+    </div>
+  </div>
+  <div class="prog-wrap">
+    <div class="prog-bar"><div class="prog-fill" id="prog-fill"></div></div>
+    <div class="prog-label" id="prog-label">0 / 0</div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- ── Opening ── -->
+  <div class="section s-yellow" id="sec-open">
+    <div class="sec-header open" onclick="toggleSec('sec-open')">
+      <span class="sec-icon">🎬</span>
+      <div class="sec-info">
+        <div class="sec-title">Opening</div>
+        <div class="sec-sub">Sem compartilhar tela — olha pra câmera</div>
+      </div>
+      <span class="sec-arrow">▶</span>
+    </div>
+    <div class="sec-body open" id="body-open">
+
+      <div class="step" onclick="toggleStep(this)">
+        <input class="step-cb" type="checkbox"/>
+        <div class="step-body">
+          <div class="step-top">
+            <div class="step-title">Apresentação</div>
+            <span class="step-time t-yellow">10s</span>
+          </div>
+          <div class="quote-block">"Hi — I'm Antonio Jansen, Principal AI Engineer. What I'm showing you today is jansen_dev_agent: three automated agents running live in production."</div>
+        </div>
+      </div>
+
+      <div class="step" onclick="toggleStep(this)">
+        <input class="step-cb" type="checkbox"/>
+        <div class="step-body">
+          <div class="step-top">
+            <div class="step-title">Frase de abertura</div>
+            <span class="step-time t-yellow">10s</span>
+          </div>
+          <div class="quote-block">"Every team I know is trying to move faster. I stopped trying — and built this instead. Here's how you actually go fast."</div>
+        </div>
+      </div>
+
+      <!-- SLIDE: full architecture overview -->
+      <div class="slide">
+        <div class="slide-agents">
+          <div class="slide-agent a-yellow">
+            <div class="slide-agent-icon">🌙</div>
+            <div class="slide-agent-name">Overnight Agent</div>
+            <div class="slide-agent-sub">cron 02:00 · code &amp; SQL review</div>
+          </div>
+          <div class="slide-agent a-green">
+            <div class="slide-agent-icon">🌅</div>
+            <div class="slide-agent-name">Morning Agent</div>
+            <div class="slide-agent-sub">cron 07:00 · meeting intelligence</div>
+          </div>
+          <div class="slide-agent a-blue">
+            <div class="slide-agent-icon">🤖</div>
+            <div class="slide-agent-name">Bot Listener</div>
+            <div class="slide-agent-sub">systemd 24/7 · @jansen_dev_agent_bot</div>
+          </div>
+        </div>
+
+        <div class="slide-divider">LLM Stack</div>
+        <div class="slide-llm">
+          <div class="slide-llm-primary">
+            <div class="slide-llm-label primary">Primary · code / SQL / meetings</div>
+            <div class="slide-llm-model">claude-sonnet-4-6</div>
+            <div class="slide-llm-desc">Anthropic · structured code reasoning</div>
+          </div>
+          <div class="slide-llm-sep">→</div>
+          <div class="slide-llm-fallback">
+            <div class="slide-llm-label fallback">Fallback</div>
+            <div class="slide-llm-model" style="font-size:.65rem;">llama-3.3-70b-versatile</div>
+            <div class="slide-llm-desc">Groq · 3-key rotation</div>
+          </div>
+        </div>
+        <div class="slide-llm" style="margin-top:.4rem;">
+          <div class="slide-llm-primary" style="border-color:var(--blue); background:var(--blue-bg);">
+            <div class="slide-llm-label primary" style="color:var(--blue-light);">Primary · voice / audio</div>
+            <div class="slide-llm-model">whisper-1</div>
+            <div class="slide-llm-desc">OpenAI · auto-detect language</div>
+          </div>
+          <div class="slide-llm-sep">→</div>
+          <div class="slide-llm-fallback">
+            <div class="slide-llm-label fallback">Fallback</div>
+            <div class="slide-llm-model" style="font-size:.65rem;">whisper-large-v3-turbo</div>
+            <div class="slide-llm-desc">Groq</div>
+          </div>
+        </div>
+
+        <div class="slide-divider" style="margin-top:.75rem;">Infrastructure</div>
+        <div style="display:flex; gap:.4rem; flex-wrap:wrap;">
+          <span class="sn">DigitalOcean VPS</span>
+          <span class="sn">crontab</span>
+          <span class="sn">systemd</span>
+          <span class="sn">GitHub REST API</span>
+          <span class="sn">Telegram Bot API</span>
+          <span class="sn">pytest</span>
+          <span class="sn">Playwright PDF</span>
+        </div>
+      </div>
+      <!-- /SLIDE -->
+
+    </div>
+  </div>
+
+  <!-- ── Step 1: Code review agent ── -->
+  <div class="section s-blue" id="sec-1">
+    <div class="sec-header open" onclick="toggleSec('sec-1')">
+      <span class="sec-icon">🤖</span>
+      <div class="sec-info">
+        <div class="sec-title">Step 1 — Code review agent</div>
+        <div class="sec-sub">Claude Code → pasta local → git → GitHub PR</div>
+      </div>
+      <span class="sec-arrow">▶</span>
+    </div>
+    <div class="sec-body open" id="body-1">
+
+      <!-- SLIDE: Overnight Agent highlighted -->
+      <div class="slide">
+        <div class="slide-agents">
+          <div class="slide-agent a-yellow">
+            <div class="slide-agent-icon">🌙</div>
+            <div class="slide-agent-name">Overnight Agent</div>
+            <div class="slide-agent-sub">cron 02:00 · code &amp; SQL review</div>
+          </div>
+          <div class="slide-agent dim">
+            <div class="slide-agent-icon">🌅</div>
+            <div class="slide-agent-name">Morning Agent</div>
+            <div class="slide-agent-sub">cron 07:00</div>
+          </div>
+          <div class="slide-agent dim">
+            <div class="slide-agent-icon">🤖</div>
+            <div class="slide-agent-name">Bot Listener</div>
+            <div class="slide-agent-sub">systemd 24/7</div>
+          </div>
+        </div>
+
+        <div class="slide-divider">Pipeline</div>
+        <div class="slide-flow">
+          <span class="sn-yellow">.py / .sql files</span>
+          <span class="slide-arrow">→</span>
+          <span class="sn">file_processor.py</span>
+          <span class="slide-arrow">→</span>
+          <span class="sn-purple">claude-sonnet-4-6</span>
+          <span class="slide-arrow">→</span>
+          <span class="sn">reviewer.py / sql_reviewer.py</span>
+          <span class="slide-arrow">→</span>
+          <span class="sn">code_fixer.py</span>
+          <span class="slide-arrow">→</span>
+          <span class="sn">pytest</span>
+        </div>
+        <div class="slide-outputs">
+          <span class="slide-out slide-out-blue">📋 GitHub PR</span>
+          <span class="slide-out slide-out-green">📱 Telegram</span>
+          <span class="slide-out slide-out-dim">APPROVED → auto-merge</span>
+          <span class="slide-out slide-out-dim">NEEDS FIXES → triage</span>
+        </div>
+      </div>
+      <!-- /SLIDE -->
+
+      <div class="step" onclick="toggleStep(this)">
+        <input class="step-cb" type="checkbox"/>
+        <div class="step-body">
+          <div class="step-top">
+            <div class="step-title">Mostra pasta vazia → prompt → arquivo aparece no local + git</div>
+            <span class="step-time t-blue">~40s</span>
+          </div>
+          <div class="phase-lbl before">antes — pasta local</div>
+          <div class="quote-block">"The folder is empty — nothing queued for review."</div>
+          <div class="action-block">ls demo/code_auto_reviewed/</div>
+          <div class="action-block">git status</div>
+          <div class="prompt-wrap">
+            <textarea id="p-gen-code-3" readonly onclick="this.select()" rows="3">Create a small hello world Python file in the code_auto_reviewed folder with a missing closing parenthesis on the print call</textarea>
+            <button onclick="navigator.clipboard.writeText(document.getElementById('p-gen-code-3').value)">Copy</button>
+          </div>
+          <div class="prompt-wrap">
+            <textarea id="p-gen-code-4" readonly onclick="this.select()" rows="3">Create a clean hello world Python file with no errors in the code_auto_reviewed folder — ready to deploy without review</textarea>
+            <button onclick="navigator.clipboard.writeText(document.getElementById('p-gen-code-4').value)">Copy</button>
+          </div>
+          <div class="phase-lbl after">depois — pasta local + git</div>
+          <div class="quote-block">"The file is there — Claude Code created it and git already sees it. That's the agent's input."</div>
+          <div class="action-block">ls demo/code_auto_reviewed/</div>
+          <div class="action-block">git status</div>
+        </div>
+      </div>
+
+      <div class="step" onclick="toggleStep(this)">
+        <input class="step-cb" type="checkbox"/>
+        <div class="step-body">
+          <div class="step-top">
+            <div class="step-title">Roda o agent → log → PR novo no GitHub</div>
+            <span class="step-time t-blue">~45s</span>
+          </div>
+          <div class="phase-lbl before">antes — GitHub</div>
+          <a class="inline-link" href="https://github.com/ToniJansen/jansen-dev-agent/pulls?q=is%3Apr+%5BAgent%5D" target="_blank">→ All [Agent] PRs — anota o último</a>
+          <div class="prompt-wrap" style="margin-top:.6rem">
+            <textarea id="p-run-overnight" readonly onclick="this.select()" rows="2">Run the overnight agent on the VPS and show me the log</textarea>
+            <button onclick="navigator.clipboard.writeText(document.getElementById('p-run-overnight').value)">Copy</button>
+          </div>
+          <div class="action-block" style="margin-top:.6rem">ssh root@137.184.60.205</div>
+          <div class="action-block">cd /root/jansen-dev-agent/jansen_dev_agent</div>
+          <div class="action-block">python3 overnight_agent.py</div>
+          <div class="phase-lbl after">depois — log + GitHub</div>
+          <div class="quote-block">"The agent read the file, fixed the code, ran the tests, and opened the pull request — all in one run."</div>
+          <div class="action-block">tail -80 /tmp/jansen_overnight.log</div>
+          <a class="inline-link" href="https://github.com/ToniJansen/jansen-dev-agent/pulls?q=is%3Apr+%5BAgent%5D" target="_blank">→ All [Agent] PRs — PR novo no topo</a>
+        </div>
+      </div>
+
+      <div class="step" onclick="toggleStep(this)">
+        <input class="step-cb" type="checkbox"/>
+        <div class="step-body">
+          <div class="step-top">
+            <div class="step-title">Clica num PR ✅ merged</div>
+            <span class="step-time t-blue">~20s</span>
+          </div>
+          <a class="inline-link" href="https://github.com/ToniJansen/jansen-dev-agent/pulls?q=is%3Apr+is%3Aclosed+%5BAgent%5D" target="_blank">→ PRs fechados / merged</a>
+          <div class="quote-block">"This one passed clean — the agent reviewed it, fixed nothing, and it merged automatically."</div>
+        </div>
+      </div>
+
+      <div class="step" onclick="toggleStep(this)">
+        <input class="step-cb" type="checkbox"/>
+        <div class="step-body">
+          <div class="step-top">
+            <div class="step-title">Clica num PR ❌ NEEDS FIXES → lê os findings</div>
+            <span class="step-time t-blue">~60s</span>
+          </div>
+          <a class="inline-link" href="https://github.com/ToniJansen/jansen-dev-agent/pulls?q=is%3Apr+is%3Aopen+%5BAgent%5D" target="_blank">→ PRs abertos — escolhe um ❌ NEEDS FIXES</a>
+          <div class="quote-block">"This one has problems. Now I read every finding and decide if the agent got it right."</div>
+        </div>
+      </div>
+
+      <div class="step" onclick="toggleStep(this)">
+        <input class="step-cb" type="checkbox"/>
+        <div class="step-body">
+          <div class="step-top">
+            <div class="step-title">Files changed → lê o diff</div>
+            <span class="step-time t-blue">~30s</span>
+          </div>
+          <div class="quote-block">"The agent didn't just report the problem — it rewrote the code. I check if the fix actually works."</div>
+        </div>
+      </div>
+
+      <div class="step" onclick="toggleStep(this)">
+        <input class="step-cb" type="checkbox"/>
+        <div class="step-body">
+          <div class="step-top">
+            <div class="step-title">Vai pro bloco do pytest</div>
+            <span class="step-time t-blue">~20s</span>
+          </div>
+          <div class="quote-block">"Tests failed before the fix. All pass now. The agent verified its own work."</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Step 2: Meeting agent ── -->
+  <div class="section s-yellow" id="sec-2">
+    <div class="sec-header" onclick="toggleSec('sec-2')">
+      <span class="sec-icon">📋</span>
+      <div class="sec-info">
+        <div class="sec-title">Step 2 — Meeting agent</div>
+        <div class="sec-sub">Claude Code → pasta local → git → Telegram</div>
+      </div>
+      <span class="sec-arrow">▶</span>
+    </div>
+    <div class="sec-body" id="body-2">
+
+      <!-- SLIDE: Morning Agent highlighted -->
+      <div class="slide">
+        <div class="slide-agents">
+          <div class="slide-agent dim">
+            <div class="slide-agent-icon">🌙</div>
+            <div class="slide-agent-name">Overnight Agent</div>
+            <div class="slide-agent-sub">cron 02:00</div>
+          </div>
+          <div class="slide-agent a-green">
+            <div class="slide-agent-icon">🌅</div>
+            <div class="slide-agent-name">Morning Agent</div>
+            <div class="slide-agent-sub">cron 07:00 · meeting intelligence</div>
+          </div>
+          <div class="slide-agent dim">
+            <div class="slide-agent-icon">🤖</div>
+            <div class="slide-agent-name">Bot Listener</div>
+            <div class="slide-agent-sub">systemd 24/7</div>
+          </div>
+        </div>
+
+        <div class="slide-divider">Pipeline</div>
+        <div class="slide-flow">
+          <span class="sn-green">.md meeting files</span>
+          <span class="slide-arrow">→</span>
+          <span class="sn">file_processor.py</span>
+          <span class="slide-arrow">→</span>
+          <span class="sn-purple">claude-sonnet-4-6</span>
+          <span class="slide-arrow">→</span>
+          <span class="sn">meeting_processor.py</span>
+        </div>
+        <div class="slide-outputs">
+          <span class="slide-out slide-out-green">📱 Telegram summary</span>
+          <span class="slide-out slide-out-dim">decisions · actions · blockers</span>
+          <span class="slide-out slide-out-dim">archive to processed/</span>
+        </div>
+      </div>
+      <!-- /SLIDE -->
+
+      <div class="step" onclick="toggleStep(this)">
+        <input class="step-cb" type="checkbox"/>
+        <div class="step-body">
+          <div class="step-top">
+            <div class="step-title">Mostra pasta vazia → prompt → ata aparece no local + git</div>
+            <span class="step-time t-yellow">~25s</span>
+          </div>
+          <div class="phase-lbl before">antes — pasta local</div>
+          <div class="quote-block">"Same idea — the folder is empty. I ask Claude Code to write the meeting notes and drop them in."</div>
+          <div class="action-block">ls demo/meetings/</div>
+          <div class="action-block">git status</div>
+          <div class="prompt-wrap">
+            <textarea id="p-gen-meet" readonly onclick="this.select()" rows="3">Claude, write meeting notes from today's standup about the new deploy pipeline strategy and save them to the meetings folder on the VPS</textarea>
+            <button onclick="navigator.clipboard.writeText(document.getElementById('p-gen-meet').value)">Copy</button>
+          </div>
+          <div class="phase-lbl after">depois — pasta local + git</div>
+          <div class="quote-block">"The notes are there. The morning agent picks this up at 7 AM — or I run it right now."</div>
+          <div class="action-block">ls demo/meetings/</div>
+          <div class="action-block">git status</div>
+        </div>
+      </div>
+
+      <div class="step" onclick="toggleStep(this)">
+        <input class="step-cb" type="checkbox"/>
+        <div class="step-body">
+          <div class="step-top">
+            <div class="step-title">Roda o morning agent → log → mensagem no Telegram</div>
+            <span class="step-time t-yellow">~30s</span>
+          </div>
+          <div class="prompt-wrap">
+            <textarea id="p-run-morning" readonly onclick="this.select()" rows="2">Run the morning agent on the VPS and show me the log</textarea>
+            <button onclick="navigator.clipboard.writeText(document.getElementById('p-run-morning').value)">Copy</button>
+          </div>
+          <div class="action-block">python3 morning_agent.py</div>
+          <div class="phase-lbl after">depois — log + Telegram</div>
+          <div class="quote-block">"It reads the notes, pulls out decisions and action items, and sends the summary straight to Telegram."</div>
+          <div class="action-block">tail -40 /tmp/jansen_morning.log</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Step 3: Telegram bot ── -->
+  <div class="section s-green" id="sec-3">
+    <div class="sec-header" onclick="toggleSec('sec-3')">
+      <span class="sec-icon">📊</span>
+      <div class="sec-info">
+        <div class="sec-title">Step 3 — Telegram bot</div>
+        <div class="sec-sub">Review on-demand + métricas ao vivo</div>
+      </div>
+      <span class="sec-arrow">▶</span>
+    </div>
+    <div class="sec-body" id="body-3">
+
+      <!-- SLIDE: Bot Listener highlighted -->
+      <div class="slide">
+        <div class="slide-agents">
+          <div class="slide-agent dim">
+            <div class="slide-agent-icon">🌙</div>
+            <div class="slide-agent-name">Overnight Agent</div>
+            <div class="slide-agent-sub">cron 02:00</div>
+          </div>
+          <div class="slide-agent dim">
+            <div class="slide-agent-icon">🌅</div>
+            <div class="slide-agent-name">Morning Agent</div>
+            <div class="slide-agent-sub">cron 07:00</div>
+          </div>
+          <div class="slide-agent a-blue">
+            <div class="slide-agent-icon">🤖</div>
+            <div class="slide-agent-name">Bot Listener</div>
+            <div class="slide-agent-sub">systemd 24/7 · @jansen_dev_agent_bot</div>
+          </div>
+        </div>
+
+        <div class="slide-divider">On-demand pipeline</div>
+        <div class="slide-flow">
+          <span class="sn-blue">Telegram message</span>
+          <span class="slide-arrow">→</span>
+          <span class="sn">auto-detect type</span>
+          <span class="slide-arrow">→</span>
+          <span class="sn">file_processor.py</span>
+          <span class="slide-arrow">→</span>
+          <span class="sn-purple">claude-sonnet-4-6</span>
+          <span class="slide-arrow">→</span>
+          <span class="sn-blue">reply ~10s</span>
+        </div>
+        <div class="slide-flow" style="margin-top:.35rem;">
+          <span class="sn-blue">🎙️ voice ≤60s</span>
+          <span class="slide-arrow">→</span>
+          <span class="sn">whisper-1 (OpenAI)</span>
+          <span class="slide-arrow">→</span>
+          <span class="sn">_detect_type()</span>
+          <span class="slide-arrow">→</span>
+          <span class="sn">same pipeline</span>
+        </div>
+        <div class="slide-outputs" style="margin-top:.5rem;">
+          <span class="slide-out slide-out-blue">📋 code review reply</span>
+          <span class="slide-out slide-out-blue">🗄️ SQL review reply</span>
+          <span class="slide-out slide-out-blue">📋 meeting summary</span>
+          <span class="slide-out slide-out-green">📊 /report → PDF</span>
+        </div>
+      </div>
+      <!-- /SLIDE -->
+
+      <div class="step" onclick="toggleStep(this)">
+        <input class="step-cb" type="checkbox"/>
+        <div class="step-body">
+          <div class="step-top">
+            <div class="step-title">Manda um arquivo direto pro bot</div>
+            <span class="step-time t-green">~30s</span>
+          </div>
+          <a class="inline-link" href="https://t.me/jansen_dev_agent_bot" target="_blank">→ t.me/jansen_dev_agent_bot</a>
+          <div class="quote-block">"Scheduled agents run at fixed times — but what if I need a review right now? I send any file directly to the bot, instant review, no folders."</div>
+        </div>
+      </div>
+
+      <div class="step" onclick="toggleStep(this)">
+        <input class="step-cb" type="checkbox"/>
+        <div class="step-body">
+          <div class="step-top">
+            <div class="step-title">Digita /report → aguarda ~15s → PDF</div>
+            <span class="step-time t-green">~20s</span>
+          </div>
+          <a class="inline-link" href="https://t.me/jansen_dev_agent_bot" target="_blank">→ t.me/jansen_dev_agent_bot — digita /report</a>
+          <div class="quote-block">"One command — live data from GitHub, generated as a PDF. This is how I track the whole system."</div>
+        </div>
+      </div>
+
+      <div class="step" onclick="toggleStep(this)">
+        <input class="step-cb" type="checkbox"/>
+        <div class="step-body">
+          <div class="step-top">
+            <div class="step-title">Abre PDF → seção Before vs. After</div>
+            <span class="step-time t-green">~15s</span>
+          </div>
+          <div class="quote-block">"Before: zero automated reviews. After: every PR on that list — zero developer hours."</div>
+        </div>
+      </div>
+
+      <div class="step" onclick="toggleStep(this)">
+        <input class="step-cb" type="checkbox"/>
+        <div class="step-body">
+          <div class="step-top">
+            <div class="step-title">Fechamento — olha pra câmera</div>
+            <span class="step-time t-green">~15s</span>
+          </div>
+          <div class="quote-block">"Agents implement. I own the quality. This is a live system — happy to go deeper on a call."</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <button class="reset-btn" onclick="resetAll()">↺ Reset all checkboxes</button>
+
+</div>
+
+<script>
+  let elapsed = 0;
+  let running = false;
+  let interval = null;
+  const WARN_AT = 6 * 60;
+  const OVER_AT = 8 * 60;
+  const DROP_AT = 7 * 60;
+  let droppedPlayed = false;
+
+  function playDrop() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      [0, 0.12].forEach((delay, i) => {
+        const osc = ctx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(i === 0 ? 880 : 660, ctx.currentTime + delay);
+        osc.frequency.exponentialRampToValueAtTime(i === 0 ? 440 : 330, ctx.currentTime + delay + 0.18);
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.35, ctx.currentTime + delay);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.25);
+        osc.connect(g);
+        g.connect(ctx.destination);
+        osc.start(ctx.currentTime + delay);
+        osc.stop(ctx.currentTime + delay + 0.3);
+      });
+    } catch (e) {}
+  }
+
+  function fmt(s) {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return m + ':' + String(sec).padStart(2, '0');
+  }
+
+  function tick() {
+    elapsed++;
+    const el = document.getElementById('timer');
+    el.textContent = fmt(elapsed);
+    el.className = 'timer-display' +
+      (elapsed >= OVER_AT ? ' over' : elapsed >= WARN_AT ? ' warn' : '');
+    if (elapsed === DROP_AT && !droppedPlayed) {
+      droppedPlayed = true;
+      playDrop();
+    }
+  }
+
+  function toggleTimer() {
+    const btn = document.getElementById('sw-btn');
+    if (running) {
+      clearInterval(interval);
+      running = false;
+      btn.textContent = '▶ Resume';
+      btn.className = 'sw-btn start';
+    } else {
+      interval = setInterval(tick, 1000);
+      running = true;
+      btn.textContent = '⏸ Pause';
+      btn.className = 'sw-btn stop';
+    }
+  }
+
+  function resetTimer() {
+    clearInterval(interval);
+    running = false;
+    elapsed = 0;
+    document.getElementById('timer').textContent = '0:00';
+    document.getElementById('timer').className = 'timer-display';
+    document.getElementById('sw-btn').textContent = '▶ Start';
+    document.getElementById('sw-btn').className = 'sw-btn start';
+    droppedPlayed = false;
+  }
+
+  function toggleSec(id) {
+    const sec = document.getElementById(id);
+    const header = sec.querySelector('.sec-header');
+    const bodyId = 'body-' + id.split('-').pop();
+    const body = document.getElementById(bodyId);
+    header.classList.toggle('open');
+    body.classList.toggle('open');
+  }
+
+  function toggleStep(el) {
+    if (event.target.type === 'checkbox') return;
+    const cb = el.querySelector('.step-cb');
+    cb.checked = !cb.checked;
+    el.classList.toggle('done', cb.checked);
+    updateProg();
+  }
+
+  function updateProg() {
+    const all  = document.querySelectorAll('.step-cb');
+    const done = document.querySelectorAll('.step-cb:checked');
+    const pct  = all.length ? (done.length / all.length * 100) : 0;
+    document.getElementById('prog-fill').style.width = pct + '%';
+    document.getElementById('prog-label').textContent = done.length + ' / ' + all.length;
+  }
+
+  function resetAll() {
+    document.querySelectorAll('.step-cb').forEach(cb => cb.checked = false);
+    document.querySelectorAll('.step').forEach(el => el.classList.remove('done'));
+    updateProg();
+    resetTimer();
+  }
+
+  document.querySelectorAll('.step-cb').forEach(cb => {
+    cb.addEventListener('click', e => e.stopPropagation());
+    cb.addEventListener('change', function() {
+      this.closest('.step').classList.toggle('done', this.checked);
+      updateProg();
+    });
+  });
+
+  updateProg();
+</script>
+</body>
+</html>
