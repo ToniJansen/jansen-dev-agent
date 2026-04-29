@@ -12,6 +12,7 @@ def groq_complete(messages: list[dict], max_tokens: int = 1024) -> str:
     keys = [k for k in [
         os.environ.get("GROQ_API_KEY"),
         os.environ.get("GROQ_API_KEY_2"),
+        os.environ.get("GROQ_API_KEY_3"),
     ] if k]
 
     last_exc: Exception | None = None
