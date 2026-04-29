@@ -1,5 +1,5 @@
 # Loom Script — jansen_dev_agent Demo
-# Target: Jido (CTO/Founder) — via Henry
+# Target: Jedo (CTO/Founder) — via Henry
 # Duration: 6–8 minutes | Language: English
 
 ---
@@ -213,4 +213,4 @@ tail -80 /tmp/jansen_overnight.log
 
 ---
 
-## SEND TO HENRY — not directly to Jido
+## SEND TO HENRY — not directly to Jedo
