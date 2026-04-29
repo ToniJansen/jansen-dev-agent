@@ -20,6 +20,7 @@ from github_pr import open_review_pr
 from greeter import greet
 from metrics import build_report
 from file_processor import FileTooLargeError
+from transcriber import transcribe, MAX_DURATION
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(levelname)s  %(message)s")
 log = logging.getLogger("bot_listener")
@@ -79,7 +80,8 @@ async def start(update: Update, _context: ContextTypes.DEFAULT_TYPE) -> None:
         "Send me:\n"
         "• A `.py` file or code snippet → Python code review\n"
         "• A `.sql` file or SQL query → Multi-dialect SQL review\n"
-        "• A meeting transcript (`.md` or text) → Action items & decisions\n\n"
+        "• A meeting transcript (`.md` or text) → Action items & decisions\n"
+        "• A voice note or audio file 🎙️ → Transcribed & routed automatically\n\n"
         "_Scheduled: code review at 02:00 · meeting todos at 07:00_",
         parse_mode="Markdown",
     )
@@ -163,12 +165,7 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         Path(tmp_path).unlink(missing_ok=True)
 
 
-async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if _is_maintenance():
-        await update.message.reply_text("🔧 Bot is under maintenance. Please try again later.")
-        return
-
-    text = update.message.text or ""
+async def _process_text(update: Update, context: ContextTypes.DEFAULT_TYPE, text: str) -> None:
     content_type = _detect_type(text)
 
     if len(text) < 50 or content_type == "greeting":
@@ -199,6 +196,44 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         Path(tmp_path).unlink(missing_ok=True)
 
 
+async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if _is_maintenance():
+        await update.message.reply_text("🔧 Bot is under maintenance. Please try again later.")
+        return
+    await _process_text(update, context, update.message.text or "")
+
+
+async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if _is_maintenance():
+        await update.message.reply_text("🔧 Bot is under maintenance. Please try again later.")
+        return
+
+    voice = update.message.voice or update.message.audio
+    duration = getattr(voice, "duration", 0) or 0
+
+    await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
+    await update.message.reply_text("🎙️ Transcribing audio...")
+
+    tg_file = await context.bot.get_file(voice.file_id)
+    with tempfile.NamedTemporaryFile(suffix=".ogg", delete=False) as tmp:
+        await tg_file.download_to_drive(tmp.name)
+        audio_path = tmp.name
+
+    try:
+        text, was_trimmed = await asyncio.to_thread(transcribe, audio_path, duration)
+        if not text:
+            await update.message.reply_text("⚠️ Could not transcribe audio.")
+            return
+        trim_note = f" _(trimmed to {MAX_DURATION}s)_" if was_trimmed else ""
+        await _reply(update, f"🎙️ *Transcribed:*{trim_note}\n_{text}_")
+        await _process_text(update, context, text)
+    except Exception as e:
+        log.error("handle_voice failed: %s", e)
+        await update.message.reply_text(f"⚠️ Audio transcription failed: {e}")
+    finally:
+        Path(audio_path).unlink(missing_ok=True)
+
+
 def main() -> None:
     token = os.environ["TELEGRAM_BOT_TOKEN"]
     app = ApplicationBuilder().token(token).build()
@@ -206,6 +241,7 @@ def main() -> None:
     app.add_handler(CommandHandler("maintenance", maintenance_cmd))
     app.add_handler(CommandHandler("report", report_cmd))
     app.add_handler(MessageHandler(filters.Document.ALL, handle_document))
+    app.add_handler(MessageHandler(filters.VOICE | filters.AUDIO, handle_voice))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
     log.info("Bot listener started. Waiting for messages...")
     app.run_polling()

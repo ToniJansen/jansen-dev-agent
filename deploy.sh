@@ -9,7 +9,7 @@ SERVICE="jansen-bot"
 
 echo "==> Updating system..."
 sudo apt-get update -qq
-sudo apt-get install -y python3 python3-pip git
+sudo apt-get install -y python3 python3-pip git ffmpeg
 
 echo "==> Cloning repo..."
 if [ -d "$HOME/jansen-dev-agent" ]; then
