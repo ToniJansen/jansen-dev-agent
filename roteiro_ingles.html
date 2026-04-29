@@ -391,6 +391,30 @@ Keep each file under 20 lines. No comments. Use the exact filenames above.</text
         </div>
       </div>
 
+      <div class="step" onclick="toggleStep(this)">
+        <input class="step-cb" type="checkbox"/>
+        <div class="step-body">
+          <div class="step-top">
+            <div class="step-title">Commands — run agents on VPS during the demo</div>
+            <span class="step-time t-yellow">ref</span>
+          </div>
+          <div class="step-note" style="margin-top:.35rem;margin-bottom:.4rem;">SSH in first, then pick the command you need:</div>
+          <div class="action-block">ssh root@137.184.60.205</div>
+          <div class="action-block" style="margin-top:.3rem">cd /root/jansen-dev-agent/jansen_dev_agent</div>
+          <div style="margin-top:.6rem;display:flex;flex-direction:column;gap:.3rem;">
+            <div style="font-size:.78rem;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.07em;">Show log (recommended — no rate limit risk)</div>
+            <div class="action-block">tail -80 /tmp/jansen_overnight.log</div>
+            <div class="action-block" style="margin-top:.3rem">tail -40 /tmp/jansen_morning.log</div>
+            <div style="font-size:.78rem;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.07em;margin-top:.5rem;">Run live (only if you want to show real-time execution)</div>
+            <div class="action-block">python3 overnight_agent.py</div>
+            <div class="action-block" style="margin-top:.3rem">python3 morning_agent.py</div>
+          </div>
+          <div style="margin-top:.5rem;background:#1c1000;border:1px solid #d97706;border-radius:7px;padding:.5rem .75rem;font-size:.78rem;color:#fde68a;">
+            ⚠️ Running live takes ~30s and may hit rate limit mid-demo. Prefer the log unless you need fresh output.
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
