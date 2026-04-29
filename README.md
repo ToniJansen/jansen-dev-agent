@@ -14,7 +14,7 @@ Three entry points. One pipeline. No human in the loop.
 |---------|-------|--------|
 | **02:00 nightly** | Python/SQL files in `code_auto_reviewed/` | Telegram report + security tests before/after + GitHub PR with LLM fixes |
 | **07:00 daily** | Meeting transcripts in `meetings/` | Telegram summary: decisions, action items, blockers |
-| **On demand** | File or text sent to `@jansen_dev_agent_bot` | Instant review or analysis in reply |
+| **On demand** | File, text, or voice note sent to `@jansen_dev_agent_bot` | Instant review or analysis in reply |
 | **`/report` command** | Live GitHub API data | PDF metrics dashboard delivered via Telegram |
 
 ---
@@ -42,6 +42,10 @@ Three entry points. One pipeline. No human in the loop.
                      │
                   Groq API
              llama-3.3-70b-versatile
+             whisper-large-v3-turbo (audio)
+
+  Voice/audio messages:
+  🎙️ → transcriber.py → Groq Whisper → _detect_type() → same pipeline
 
   overnight_agent.py ──► git pull → review → fix → GitHub PR
   morning_agent.py   ──► scan meetings/ → process → archive
@@ -120,6 +124,14 @@ Send a transcript or `.md` file → structured intelligence report:
 • Two engineers flagged scope as too broad for the sprint
 ```
 
+### Voice and audio messages
+Send a voice note or audio file → transcribed by Groq Whisper and routed automatically:
+
+- Language is auto-detected (Portuguese, English, or any Whisper-supported language)
+- Transcribed text shown first so you can verify what was understood
+- Then routed through the same `_detect_type()` pipeline as text messages
+- Audio longer than 60 seconds is trimmed with `ffmpeg` before transcription
+
 ### Language-aware greeter
 Send any text that isn't code, SQL, or meeting content → the bot responds in your language:
 
@@ -133,10 +145,13 @@ Send any text that isn't code, SQL, or meeting content → the bot responds in y
 | Component | Technology |
 |-----------|------------|
 | LLM | Groq — `llama-3.3-70b-versatile` (free tier) |
+| Speech-to-text | Groq — `whisper-large-v3-turbo` (free tier, auto-detect language) |
 | Bot framework | `python-telegram-bot` 22.x (async, long-polling) |
 | Scheduling | launchd (macOS) / systemd + cron (Linux) |
-| GitHub integration | REST API via `requests` — branch, commit, PR |
-| PDF rendering | Playwright headless Chromium — renders Chart.js charts |
+| GitHub integration | REST API via `requests` — branch, commit, PR, auto-merge |
+| Metrics chart | Plotly + kaleido 0.2.1 — static PNG embedded in HTML |
+| PDF rendering | Playwright headless Chromium — HTML → PDF |
+| Audio trimming | `ffmpeg` — trims audio > 60s before transcription |
 | Security tests | `pytest` — 10 tests, runs before/after every automated fix |
 | Runtime | Python 3.9+ |
 
@@ -155,9 +170,11 @@ jansen_dev_agent/
 ├── code_fixer.py         # LLM code fix → Groq
 ├── github_pr.py          # GitHub PR creation
 ├── greeter.py            # language-aware greeting/redirect
-├── metrics.py            # GitHub API metrics + HTML + PDF via Playwright
+├── metrics.py            # GitHub API metrics + Plotly chart + HTML + PDF via Playwright
 ├── file_processor.py     # token budget + injection defense
+├── transcriber.py        # Groq Whisper audio transcription (auto-detect language)
 ├── telegram_sender.py    # Telegram API wrapper (text + document)
+├── requirements.txt      # all Python dependencies
 └── .env.example
 
 demo/
@@ -184,7 +201,10 @@ deploy.sh                 # one-shot VPS setup (Oracle Cloud / Ubuntu 22.04)
 git clone https://github.com/ToniJansen/jansen-dev-agent.git
 cd jansen-dev-agent/jansen_dev_agent
 
-pip3 install groq requests python-dotenv "python-telegram-bot>=20.0"
+pip3 install -r requirements.txt
+python3 -m playwright install chromium --with-deps
+# macOS: brew install ffmpeg
+# Linux: sudo apt-get install -y ffmpeg
 
 cp .env.example .env
 # fill in: GROQ_API_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, GITHUB_TOKEN, GITHUB_REPO
@@ -221,7 +241,7 @@ MEETINGS_DIR=../demo/meetings
 | Command | Description |
 |---------|-------------|
 | `/start` | Show capabilities and usage |
-| `/report` | Owner only — generate PDF metrics dashboard from live GitHub data and send via Telegram |
+| `/report` | Owner only — generate PDF metrics dashboard (Plotly chart + GitHub live data) |
 | `/maintenance on\|off` | Owner only — pause/resume the bot |
 
 ---
