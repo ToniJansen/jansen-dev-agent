@@ -45,6 +45,34 @@ def _load_mock_prs() -> list[dict]:
     return json.loads(_MOCK_FILE.read_text(encoding="utf-8"))
 
 
+def _fetch_action_issues(repo: str) -> list[dict]:
+    all_issues: list[dict] = []
+    for state in ("open", "closed"):
+        page = 1
+        while True:
+            r = requests.get(
+                f"{_BASE}/repos/{repo}/issues",
+                headers=_headers(),
+                params={"state": state, "labels": "action-item", "per_page": 100, "page": page},
+                timeout=15,
+            )
+            r.raise_for_status()
+            batch = r.json()
+            if not batch:
+                break
+            all_issues.extend(batch)
+            page += 1
+    return all_issues
+
+
+def _parse_issue_meta(body: str) -> tuple[str, str, str]:
+    """Extract owner, deadline, source from issue body."""
+    owner    = (re.search(r"\*\*Owner:\*\*\s*(.+)",    body or "") or ["", "Unknown"])[1].strip()
+    deadline = (re.search(r"\*\*Deadline:\*\*\s*(.+)", body or "") or ["", "—"])[1].strip()
+    source   = (re.search(r"\*\*Source:\*\*\s*`(.+)`", body or "") or ["", "—"])[1].strip()
+    return owner, deadline, source
+
+
 def _fetch_agent_prs(repo: str) -> list[dict]:
     all_prs: list[dict] = []
     for state in ("open", "closed"):
@@ -132,6 +160,7 @@ def compute(prs: list[dict], include_mock: bool = True) -> dict:
         "days": days_sorted,
         "prs_per_day": [prs_by_day[d] for d in days_sorted],
         "prs": prs,
+        "issues": [],  # populated by build_report
     }
 
 
@@ -168,6 +197,26 @@ def _chart_png_b64(days: list[str], counts: list[int]) -> str:
 def _build_html(m: dict, repo: str) -> str:
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     chart_b64 = _chart_png_b64(m["days"], m["prs_per_day"])
+    issues = m.get("issues", [])
+    open_issues   = [i for i in issues if i["state"] == "open"]
+    closed_issues = [i for i in issues if i["state"] == "closed"]
+
+    def _issue_row(issue: dict) -> str:
+        owner, deadline, source = _parse_issue_meta(issue.get("body") or "")
+        date   = issue["created_at"][:10]
+        title  = issue["title"][:60]
+        url    = issue["html_url"]
+        state  = "✅ Done" if issue["state"] == "closed" else "🟢 Open"
+        return f"""
+        <tr>
+          <td>{date}</td>
+          <td><a href="{url}" target="_blank">{title}</a></td>
+          <td>{owner}</td>
+          <td>{deadline}</td>
+          <td>{state}</td>
+        </tr>"""
+
+    issue_rows = "".join(_issue_row(i) for i in sorted(issues, key=lambda x: x["created_at"], reverse=True)[:30])
 
     def _pr_row(pr: dict, date_field: str = "created_at", show_findings: bool = True) -> str:
         date = (pr.get(date_field) or pr["created_at"])[:10]
@@ -306,6 +355,10 @@ def _build_html(m: dict, repo: str) -> str:
       <div class="lbl">Warnings flagged</div></div>
     <div class="card"><div class="val blue">{m['py_count']}</div>
       <div class="lbl">Python files reviewed</div></div>
+    <div class="card"><div class="val green">{len(open_issues)}</div>
+      <div class="lbl">Action items open</div></div>
+    <div class="card"><div class="val slate">{len(closed_issues)}</div>
+      <div class="lbl">Action items done ✅</div></div>
   </div>
 
   <div class="section">
@@ -342,6 +395,14 @@ def _build_html(m: dict, repo: str) -> str:
     <table>
       <thead><tr><th>Date</th><th>PR</th><th>Type</th><th>Findings</th></tr></thead>
       <tbody>{open_rows}</tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>🎯 Action Items — from Meeting Notes</h2>
+    <table>
+      <thead><tr><th>Date</th><th>Task</th><th>Owner</th><th>Deadline</th><th>Status</th></tr></thead>
+      <tbody>{issue_rows}</tbody>
     </table>
   </div>
 
@@ -402,6 +463,7 @@ def build_report() -> Path:
     repo = os.environ["GITHUB_REPO"]
     prs = _fetch_agent_prs(repo)
     m = compute(prs)
+    m["issues"] = _fetch_action_issues(repo)
     html = _build_html(m, repo)
     _REPORT.write_text(html, encoding="utf-8")
     return generate_pdf(_REPORT)
@@ -416,6 +478,7 @@ def main() -> None:
     print(f"Found {len(prs)} agent PR(s).")
 
     m = compute(prs)
+    m["issues"] = _fetch_action_issues(repo)
     _print_summary(m, repo)
 
     html = _build_html(m, repo)

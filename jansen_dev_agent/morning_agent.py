@@ -7,7 +7,8 @@ from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).parent / ".env")
 
-from meeting_processor import process_meeting
+from meeting_processor import extract_action_items, process_meeting
+from github_pr import open_meeting_issues
 from telegram_sender import send
 
 logging.basicConfig(
@@ -32,6 +33,14 @@ def main() -> None:
         log.info("Processing: %s", meeting_file.name)
         report = process_meeting(str(meeting_file))
         send(report)
+
+        items = extract_action_items(str(meeting_file))
+        if items:
+            urls = open_meeting_issues(items, meeting_file.name)
+            for url in urls:
+                log.info("Issue opened: %s", url)
+            log.info("%d issue(s) created from %s", len(urls), meeting_file.name)
+
         shutil.move(str(meeting_file), str(processed_dir / meeting_file.name))
         log.info("Processed and archived: %s", meeting_file.name)
 
