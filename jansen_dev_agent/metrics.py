@@ -202,21 +202,20 @@ def _build_html(m: dict, repo: str) -> str:
     closed_issues = [i for i in issues if i["state"] == "closed"]
 
     def _issue_row(issue: dict) -> str:
-        owner, deadline, source = _parse_issue_meta(issue.get("body") or "")
-        date   = issue["created_at"][:10]
-        title  = issue["title"][:60]
-        url    = issue["html_url"]
-        state  = "✅ Done" if issue["state"] == "closed" else "🟢 Open"
+        owner, deadline, _ = _parse_issue_meta(issue.get("body") or "")
+        date  = issue["created_at"][:10]
+        title = issue["title"][:60]
+        url   = issue["html_url"]
         return f"""
         <tr>
           <td>{date}</td>
           <td><a href="{url}" target="_blank">{title}</a></td>
           <td>{owner}</td>
           <td>{deadline}</td>
-          <td>{state}</td>
         </tr>"""
 
-    issue_rows = "".join(_issue_row(i) for i in sorted(issues, key=lambda x: x["created_at"], reverse=True)[:30])
+    open_issue_rows   = "".join(_issue_row(i) for i in sorted(open_issues,   key=lambda x: x["created_at"], reverse=True)[:30])
+    closed_issue_rows = "".join(_issue_row(i) for i in sorted(closed_issues, key=lambda x: x["created_at"], reverse=True)[:30])
 
     def _pr_row(pr: dict, date_field: str = "created_at", show_findings: bool = True) -> str:
         date = (pr.get(date_field) or pr["created_at"])[:10]
@@ -399,18 +398,26 @@ def _build_html(m: dict, repo: str) -> str:
   </div>
 
   <div class="section">
-    <h2>🎯 Action Items — from Meeting Notes</h2>
-    <table>
-      <thead><tr><th>Date</th><th>Task</th><th>Owner</th><th>Deadline</th><th>Status</th></tr></thead>
-      <tbody>{issue_rows}</tbody>
-    </table>
-  </div>
-
-  <div class="section">
     <h2>✅ Fixes Applied — Merged</h2>
     <table>
       <thead><tr><th>Merged</th><th>PR</th><th>Type</th><th>Issues Fixed</th></tr></thead>
       <tbody>{merged_rows}</tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>🟢 Action Items — Open</h2>
+    <table>
+      <thead><tr><th>Date</th><th>Task</th><th>Owner</th><th>Deadline</th></tr></thead>
+      <tbody>{open_issue_rows}</tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>✅ Action Items — Done</h2>
+    <table>
+      <thead><tr><th>Date</th><th>Task</th><th>Owner</th><th>Deadline</th></tr></thead>
+      <tbody>{closed_issue_rows}</tbody>
     </table>
   </div>
 
