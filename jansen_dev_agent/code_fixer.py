@@ -41,7 +41,7 @@ def fix_file(file_path: str, review: str) -> str:
     except FileTooLargeError:
         return Path(file_path).read_text(encoding="utf-8")
 
-    return groq_complete(
+    result = groq_complete(
         messages=[
             {"role": "system", "content": system},
             {"role": "user", "content": (
@@ -51,3 +51,13 @@ def fix_file(file_path: str, review: str) -> str:
         ],
         max_tokens=4096,
     )
+    return _strip_fences(result)
+
+
+def _strip_fences(text: str) -> str:
+    lines = text.splitlines()
+    if lines and lines[0].strip().startswith("```"):
+        lines = lines[1:]
+    if lines and lines[-1].strip() == "```":
+        lines = lines[:-1]
+    return "\n".join(lines)

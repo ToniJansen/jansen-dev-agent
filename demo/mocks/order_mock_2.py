@@ -1,26 +1,41 @@
 import os
-import pickle
+import json
 
-UPLOAD_DIR = "/var/www/uploads"
+UPLOAD_DIR = os.environ.get("UPLOAD_DIR")
 
 def read_invoice(filename):
-    path = UPLOAD_DIR + "/" + filename          # CRITICAL: path traversal (../../etc/passwd)
-    with open(path, "r") as f:
-        return f.read()
+    path = os.path.join(UPLOAD_DIR, filename)
+    try:
+        with open(path, "r") as f:
+            return f.read()
+    except OSError:
+        return None
 
 def load_session(session_file):
-    with open(session_file, "rb") as f:
-        return pickle.load(f)                   # CRITICAL: arbitrary code exec via pickle
+    with open(session_file, "r") as f:
+        return json.load(f)
 
 def save_report(name, content):
-    path = f"/reports/{name}.txt"
-    os.system(f"echo '{content}' > {path}")     # CRITICAL: command injection
+    path = os.path.join("/reports", f"{name}.txt")
+    with open(path, "w") as f:
+        f.write(content)
 
 def list_files(directory):
-    return os.listdir(directory)                # WARNING: no path sanitization
+    try:
+        return [f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
+    except OSError:
+        return []
 
 def delete_temp(filename):
-    os.remove(f"/tmp/{filename}")               # WARNING: no existence check, no sanitization
+    path = os.path.join("/tmp", filename)
+    if os.path.exists(path) and os.path.isfile(path):
+        try:
+            os.remove(path)
+        except OSError:
+            pass
 
 def get_file_size(path):
-    return os.path.getsize(path)                # INFO: no exception handling if file missing
+    try:
+        return os.path.getsize(path)
+    except OSError:
+        return None
