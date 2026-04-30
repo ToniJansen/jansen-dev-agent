@@ -14,9 +14,9 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, fil
 
 from reviewer import review_file
 from sql_reviewer import review_sql
-from meeting_processor import process_meeting
+from meeting_processor import process_meeting, extract_action_items
 from code_fixer import fix_file
-from github_pr import open_review_pr
+from github_pr import open_review_pr, open_meeting_issues
 from greeter import greet
 from metrics import build_report
 from file_processor import FileTooLargeError
@@ -165,6 +165,11 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         else:
             report = await asyncio.to_thread(process_meeting, tmp_path)
             await _reply(update, report)
+            items = await asyncio.to_thread(extract_action_items, tmp_path)
+            if items:
+                urls = await asyncio.to_thread(open_meeting_issues, items, doc.file_name)
+                for url in urls:
+                    await update.message.reply_text(f"📌 Issue opened: {url}")
     except FileTooLargeError as e:
         await update.message.reply_text(f"⚠️ {e}")
     finally:
