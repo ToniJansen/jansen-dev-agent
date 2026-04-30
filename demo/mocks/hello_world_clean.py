@@ -1,6 +1,6 @@
-def greet(name: str) -> None:
-    print("Hello, " + name)
-
+def main():
+    """Entry point for the application."""
+    print("Hello, World!")
 
 if __name__ == "__main__":
-    greet("World")
+    main()
