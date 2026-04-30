@@ -744,6 +744,7 @@
           <div class="triage-body">
             <div class="triage-title">1 · Standards</div>
             <div class="triage-sub">Naming conventions, type hints, structure — scroll diff</div>
+            <a class="inline-link" href="https://github.com/ToniJansen/jansen-dev-agent/pull/25/files" target="_blank">→ PR #25 — hello_world_clean.py — Files changed</a>
             <div class="triage-action">SCROLL diff slowly</div>
             <div class="quote-block">"Naming — clean. Type hints — present. Structure — standard. Pass."</div>
           </div>
@@ -753,6 +754,7 @@
           <div class="triage-body">
             <div class="triage-title">2 · Hallucinations</div>
             <div class="triage-sub">Where most agents fail — import real? Method exists?</div>
+            <a class="inline-link" href="https://github.com/ToniJansen/jansen-dev-agent/pull/19/files" target="_blank">→ PR #19 — order_mock_review_1.py — Files changed</a>
             <div class="triage-action">POINT to suspicious import → ALT-TAB terminal → pip show</div>
             <div class="quote-block">"This import — does it exist? pip show confirms it. Matches the lockfile. No hallucination."</div>
             <div class="diga-row" style="margin-top:.35rem;">
@@ -765,10 +767,11 @@
         <div class="triage-item">
           <input class="triage-cb" type="checkbox" onclick="e=>e.stopPropagation()"/>
           <div class="triage-body">
-            <div class="triage-title">3 · Tests — live</div>
-            <div class="triage-sub">pytest -v --cov → 8 pass, 94% coverage</div>
-            <div class="triage-action">TERMINAL → hit Enter → wait → show coverage</div>
-            <div class="quote-block">"8 tests, 94% coverage. The agent verified its own work."</div>
+            <div class="triage-title">3 · Tests</div>
+            <div class="triage-sub">Before fix: 2 failed. After fix: all pass.</div>
+            <a class="inline-link" href="https://github.com/ToniJansen/jansen-dev-agent/pull/15" target="_blank">→ PR #15 — order_manager.py — scroll to Test Results</a>
+            <div class="triage-action">SCROLL down to "Test Results" section in the PR body</div>
+            <div class="quote-block">"Before the fix — two tests failing. After — all passing. The agent didn't just report the problem, it verified the solution."</div>
           </div>
         </div>
         <div class="triage-item">
@@ -776,6 +779,7 @@
           <div class="triage-body">
             <div class="triage-title">4 · Edge cases</div>
             <div class="triage-sub">Empty input, invalid, leading-zero — scroll test file</div>
+            <a class="inline-link" href="https://github.com/ToniJansen/jansen-dev-agent/pull/27/files" target="_blank">→ PR #27 — order_mock_3.py — Files changed</a>
             <div class="triage-action">SCROLL test file</div>
             <div class="quote-block">"Empty input — covered. Invalid format — covered. Leading zero — covered."</div>
           </div>
@@ -828,7 +832,7 @@
         </div>
         <div class="impact-card">
           <div class="impact-num">3</div>
-          <div class="impact-label">escritos por mim</div>
+          <div class="impact-label">written by me</div>
         </div>
         <div class="impact-card highlight">
           <div class="impact-num" style="color:var(--green-light)">5×</div>
@@ -840,11 +844,11 @@
         </div>
         <div class="impact-card">
           <div class="impact-num">65</div>
-          <div class="impact-label">críticos detectados</div>
+          <div class="impact-label">critical issues caught</div>
         </div>
         <div class="impact-card">
           <div class="impact-num">24</div>
-          <div class="impact-label">fixes aplicados</div>
+          <div class="impact-label">fixes applied</div>
         </div>
         <div class="impact-card">
           <div class="impact-num">116</div>
