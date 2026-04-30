@@ -165,11 +165,22 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         else:
             report = await asyncio.to_thread(process_meeting, tmp_path)
             await _reply(update, report)
-            items = await asyncio.to_thread(extract_action_items, tmp_path)
-            if items:
-                urls = await asyncio.to_thread(open_meeting_issues, items, doc.file_name)
-                for url in urls:
-                    await update.message.reply_text(f"📌 Issue opened: {url}")
+            try:
+                items = await asyncio.to_thread(extract_action_items, tmp_path)
+                log.info("extract_action_items returned %d item(s) for %s", len(items), doc.file_name)
+                if items:
+                    urls = await asyncio.to_thread(open_meeting_issues, items, doc.file_name)
+                    log.info("open_meeting_issues returned %d url(s)", len(urls))
+                    if urls:
+                        for url in urls:
+                            await update.message.reply_text(f"📌 Issue opened: {url}")
+                    else:
+                        await update.message.reply_text("⚠️ Action items found but no GitHub issues were created (check GitHub token/repo config).")
+                else:
+                    log.info("No action items extracted from %s", doc.file_name)
+            except Exception as exc:
+                log.error("Failed to create GitHub issues for %s: %s", doc.file_name, exc)
+                await update.message.reply_text(f"⚠️ Could not create GitHub issues: {exc}")
     except FileTooLargeError as e:
         await update.message.reply_text(f"⚠️ {e}")
     finally:
