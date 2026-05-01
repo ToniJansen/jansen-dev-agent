@@ -1,12 +1,12 @@
 """Greet module."""
 
 
-def greet(name: str) -> None:
-    print(f"Hello, {name}!")
+def greet(name: str) -> str:
+    return f"Hello, {name}!"
 
 
 def main() -> None:
-    greet("World")
+    print(greet("World"))
 
 
 if __name__ == "__main__":
