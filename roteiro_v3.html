@@ -419,7 +419,7 @@
         <div class="setup-item" onclick="toggleSetup(this)">
           <input class="setup-cb" type="checkbox"/>
           <span class="setup-label">pull request ruim pré-aberto</span>
-          <span class="setup-note">NEEDS FIXES ❌ — aba Files changed pronta</span>
+          <a href="https://github.com/ToniJansen/jansen-dev-agent/pull/53/files" target="_blank" onclick="e=>e.stopPropagation()" class="setup-note" style="color:var(--red-light);text-decoration:none;">→ PR #53 — auth_service.py — import bcrypt ❌</a>
         </div>
       </div>
       <div class="tips-row">
@@ -665,9 +665,9 @@
             <span class="diga-label">gesto</span>
             <span class="diga-chip">scroll devagar no diff</span>
           </div>
-          <div class="action-block">↳ aponta <code style="font-size:.8em;background:transparent;">import jwt</code> — linha 1 do diff, verde, adicionada pelo agente</div>
-          <div class="quote-block">"This is where most AI agents fail — they import packages or call methods they invented. Looks right in review, crashes in production. This one: PyJWT — real package. But it's not declared in requirements. Fresh deploy — this breaks. That's what I catch."</div>
-          <a class="inline-link" href="https://github.com/ToniJansen/jansen-dev-agent/pull/19/files" target="_blank">→ Pull request #19 — Files changed — <code>import jwt</code> linha 1 do diff</a>
+          <div class="action-block">↳ aponta <code style="font-size:.8em;background:transparent;">import bcrypt</code> — linha 3 do diff, verde, adicionada pelo agente</div>
+          <div class="quote-block">"This is where most AI agents fail — they import packages that aren't declared. Looks right in review, crashes on fresh deploy. bcrypt — real package. Not in requirements.txt. That's what I catch."</div>
+          <a class="inline-link" href="https://github.com/ToniJansen/jansen-dev-agent/pull/53/files" target="_blank">→ Pull request #53 — auth_service.py — <code>import bcrypt</code> linha 3 do diff</a>
           <div class="diga-row">
             <span class="diga-label">diga</span>
             <span class="diga-chip">invented</span>
