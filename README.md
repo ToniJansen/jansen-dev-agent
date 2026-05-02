@@ -2,11 +2,11 @@
 
 # jansen_dev_agent
 
-**Infográfico:**
+</div>
+
+## Infográfico
 
 ![Jansen Dev Agent — Total Automation for 24/7 Developers](infograph01.png)
-
-</div>
 
 An autonomous developer agent that runs 24/7 — reviewing code overnight, processing meeting notes at dawn, and responding on demand via Telegram.
 
