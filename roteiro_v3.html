@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dev Agents — V3 Demo Script</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface2: #131f30;
+      --border: #334155;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --dim: #64748b;
+      --blue: #3b82f6;
+      --blue-bg: #0a1628;
+      --blue-light: #93c5fd;
+      --green: #22c55e;
+      --green-bg: #0d1f0d;
+      --green-light: #86efac;
+      --yellow: #f59e0b;
+      --yellow-bg: #1c1000;
+      --yellow-light: #fde68a;
+      --purple: #a855f7;
+      --purple-bg: #1a0a2e;
+      --purple-light: #d8b4fe;
+      --red: #ef4444;
+      --red-bg: #1a0505;
+      --red-light: #fca5a5;
+      --orange: #f97316;
+      --orange-bg: #1a0800;
+      --orange-light: #fdba74;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 16px;
+      line-height: 1.6;
+      padding-bottom: 3rem;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      background: var(--surface);
+      border-bottom: 2px solid var(--border);
+      padding: .75rem 1.25rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+    .header-title { font-size: .95rem; font-weight: 800; color: #f8fafc; white-space: nowrap; }
+    .header-sub   { font-size: .75rem; color: var(--muted); margin-top: .1rem; }
+
+    .stopwatch { display: flex; align-items: center; gap: .6rem; flex-shrink: 0; }
+    .timer-display {
+      font-family: "SF Mono", "Fira Code", monospace;
+      font-size: 1.5rem; font-weight: 700; color: #f8fafc;
+      letter-spacing: .04em; min-width: 72px; text-align: right;
+    }
+    .timer-display.warn { color: var(--yellow); }
+    .timer-display.over { color: var(--red); animation: blink 1s step-start infinite; }
+    @keyframes blink { 50% { opacity: .4; } }
+
+    .sw-btn {
+      padding: .35rem .8rem; border-radius: 7px;
+      border: 1.5px solid var(--border); background: var(--bg);
+      color: var(--text); font-size: .8rem; font-weight: 600;
+      cursor: pointer; transition: background .15s; white-space: nowrap;
+    }
+    .sw-btn:hover { background: #263348; }
+    .sw-btn.start { border-color: var(--green); color: var(--green-light); }
+    .sw-btn.stop  { border-color: var(--red);   color: var(--red); }
+    .sw-btn.reset { border-color: var(--border); color: var(--dim); font-size: .72rem; }
+
+    .prog-wrap { margin-top: .6rem; display: flex; align-items: center; gap: .75rem; }
+    .prog-bar  { flex: 1; height: 5px; background: var(--border); border-radius: 99px; overflow: hidden; }
+    .prog-fill { height: 100%; background: var(--green); border-radius: 99px; transition: width .3s ease; width: 0%; }
+    .prog-label { font-size: .72rem; color: var(--dim); white-space: nowrap; }
+
+    .container { max-width: 700px; margin: 0 auto; padding: 1.25rem 1rem; }
+
+    /* ── SECTIONS ── */
+    .section {
+      border-radius: 14px; margin-bottom: 1rem;
+      overflow: hidden; border: 1.5px solid var(--border);
+    }
+    .section.s-setup  { border-color: var(--dim); }
+    .section.s-yellow { border-color: #d97706; }
+    .section.s-blue   { border-color: var(--blue); }
+    .section.s-star   { border-color: var(--orange); box-shadow: 0 0 0 1px var(--orange-bg); }
+    .section.s-green  { border-color: var(--green); }
+    .section.s-red    { border-color: var(--red); }
+    .section.s-dim    { border-color: var(--border); opacity: .6; }
+
+    .sec-header {
+      display: flex; align-items: center; gap: .75rem;
+      padding: .95rem 1.25rem; cursor: pointer; user-select: none;
+      background: var(--surface); transition: background .15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .sec-header:hover { background: #263348; }
+    .section.s-star .sec-header { background: #1a0e00; }
+    .section.s-star .sec-header:hover { background: #241500; }
+
+    .sec-icon  { font-size: 1.3rem; flex-shrink: 0; }
+    .sec-info  { flex: 1; min-width: 0; }
+    .sec-title { font-size: 1rem; font-weight: 700; color: #f1f5f9; }
+    .sec-sub   { font-size: .78rem; color: var(--muted); margin-top: .1rem; }
+    .sec-time  {
+      font-size: .72rem; font-weight: 700; white-space: nowrap; flex-shrink: 0;
+      padding: .15rem .55rem; border-radius: 99px; border: 1px solid;
+      margin-right: .25rem;
+    }
+    .t-dim    { color: var(--dim);          border-color: var(--border);  background: var(--bg); }
+    .t-yellow { color: var(--yellow-light); border-color: var(--yellow);  background: var(--yellow-bg); }
+    .t-blue   { color: var(--blue-light);   border-color: var(--blue);    background: var(--blue-bg); }
+    .t-star   { color: var(--orange-light); border-color: var(--orange);  background: var(--orange-bg); }
+    .t-green  { color: var(--green-light);  border-color: var(--green);   background: var(--green-bg); }
+    .t-red    { color: var(--red-light);    border-color: var(--red);     background: var(--red-bg); }
+
+    .sec-arrow { font-size: .72rem; color: var(--dim); transition: transform .2s; flex-shrink: 0; }
+    .sec-header.open .sec-arrow { transform: rotate(90deg); }
+
+    .sec-body { display: none; background: var(--surface2); }
+    .sec-body.open { display: block; }
+
+    /* ── STEPS ── */
+    .step {
+      display: flex; align-items: flex-start; gap: .85rem;
+      padding: .9rem 1.25rem; border-top: 1px solid var(--border);
+      cursor: pointer; transition: background .12s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .step:hover { background: #0f1a2b; }
+    .step.done  { opacity: .4; }
+    .step.done .step-title { text-decoration: line-through; color: var(--dim); }
+
+    .step-cb {
+      width: 22px; height: 22px; flex-shrink: 0;
+      accent-color: var(--green); cursor: pointer; margin-top: .15rem;
+    }
+    .step-body  { flex: 1; min-width: 0; }
+    .step-top   { display: flex; align-items: baseline; justify-content: space-between; gap: .5rem; }
+    .step-title { font-size: .93rem; font-weight: 600; color: #f1f5f9; line-height: 1.4; }
+    .step-time  {
+      font-size: .7rem; font-weight: 700; white-space: nowrap; flex-shrink: 0;
+      padding: .1rem .45rem; border-radius: 99px; border: 1px solid;
+    }
+
+    /* ── QUOTE / ACTION / LINK blocks ── */
+    .quote-block {
+      background: var(--blue-bg); border-left: 3px solid var(--blue);
+      border-radius: 0 8px 8px 0; padding: .6rem .9rem; margin-top: .4rem;
+      font-size: .85rem; color: #bae6fd; font-style: italic; line-height: 1.5;
+    }
+    .action-block {
+      font-family: "SF Mono", "Fira Code", monospace;
+      background: var(--yellow-bg); border-left: 3px solid var(--yellow);
+      border-radius: 0 8px 8px 0; padding: .45rem .9rem; margin-top: .3rem;
+      font-size: .8rem; color: var(--yellow-light);
+    }
+    .inline-link {
+      display: block; margin-top: .4rem; padding: .5rem .85rem;
+      background: #0a1628; border: 1px solid var(--blue); border-radius: 8px;
+      color: var(--blue-light); font-size: .88rem; text-decoration: none;
+      font-weight: 600; transition: background .15s;
+    }
+    .inline-link:hover { background: #0f2040; }
+
+    /* ── DIGA row ── */
+    .diga-row {
+      display: flex; gap: .35rem; flex-wrap: wrap;
+      margin-top: .55rem; padding: .5rem .75rem;
+      background: #1c1000; border: 1px solid #7c3a00;
+      border-radius: 8px; align-items: center;
+    }
+    .diga-label {
+      font-size: .6rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: .1em; color: var(--orange); white-space: nowrap; margin-right: .2rem;
+    }
+    .diga-chip {
+      padding: .15rem .55rem; border-radius: 99px;
+      border: 1px solid var(--yellow); background: var(--yellow-bg);
+      color: var(--yellow-light); font-size: .72rem; font-weight: 700;
+    }
+
+    /* ── SLIDES ── */
+    .slide {
+      padding: 1rem 1.25rem;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+    }
+    .slide-agents { display: flex; gap: .55rem; margin-bottom: .75rem; }
+    .slide-agent {
+      flex: 1; border-radius: 10px; border: 1.5px solid var(--border);
+      padding: .6rem .75rem; background: var(--surface);
+    }
+    .slide-agent.a-yellow { border-color: #d97706; }
+    .slide-agent.a-green  { border-color: var(--green); }
+    .slide-agent.a-blue   { border-color: var(--blue); }
+    .slide-agent.dim      { opacity: .22; }
+    .slide-agent-icon { font-size: 1rem; line-height: 1; margin-bottom: .2rem; }
+    .slide-agent-name { font-size: .75rem; font-weight: 700; color: #f1f5f9; line-height: 1.3; }
+    .slide-agent-sub  { font-size: .62rem; color: var(--muted); margin-top: .1rem; }
+    .slide-flow { display: flex; align-items: center; gap: .35rem; flex-wrap: wrap; margin-bottom: .6rem; }
+    .slide-arrow { color: var(--dim); font-size: .78rem; }
+    .sn {
+      border-radius: 7px; border: 1px solid var(--border);
+      padding: .25rem .55rem; font-size: .72rem;
+      background: var(--surface); color: var(--muted); white-space: nowrap;
+    }
+    .sn-yellow { border-color: #d97706;      color: var(--yellow-light); background: var(--yellow-bg); }
+    .sn-blue   { border-color: var(--blue);   color: var(--blue-light);   background: var(--blue-bg); }
+    .sn-green  { border-color: var(--green);  color: var(--green-light);  background: var(--green-bg); }
+    .sn-purple { border-color: var(--purple); color: var(--purple-light); background: var(--purple-bg); }
+    .sn-orange { border-color: var(--orange); color: var(--orange-light); background: var(--orange-bg); }
+    .slide-llm { display: flex; gap: .5rem; align-items: stretch; margin-top: .5rem; }
+    .slide-llm-primary {
+      flex: 2; border: 1px solid var(--purple); border-radius: 8px;
+      padding: .45rem .7rem; background: var(--purple-bg);
+    }
+    .slide-llm-fallback {
+      flex: 1; border: 1px solid var(--border); border-radius: 8px;
+      padding: .45rem .7rem; background: var(--surface);
+    }
+    .slide-llm-label {
+      font-size: .58rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: .09em; margin-bottom: .2rem;
+    }
+    .slide-llm-label.primary  { color: var(--purple-light); }
+    .slide-llm-label.fallback { color: var(--dim); }
+    .slide-llm-model {
+      font-family: "SF Mono", "Fira Code", monospace;
+      font-size: .72rem; font-weight: 700; color: #f1f5f9;
+    }
+    .slide-llm-desc { font-size: .62rem; color: var(--muted); margin-top: .1rem; }
+    .slide-llm-sep { display: flex; align-items: center; color: var(--dim); font-size: .75rem; padding: 0 .1rem; }
+    .slide-outputs { display: flex; gap: .4rem; flex-wrap: wrap; margin-top: .6rem; }
+    .slide-out {
+      border-radius: 7px; border: 1px solid var(--border);
+      padding: .3rem .65rem; font-size: .72rem; font-weight: 600;
+      background: var(--surface); color: var(--text);
+      display: flex; align-items: center; gap: .3rem;
+    }
+    .slide-out-blue   { border-color: var(--blue);   color: var(--blue-light);   background: var(--blue-bg); }
+    .slide-out-green  { border-color: var(--green);  color: var(--green-light);  background: var(--green-bg); }
+    .slide-out-purple { border-color: var(--purple); color: var(--purple-light); background: var(--purple-bg); }
+    .slide-out-dim    { border-color: var(--border); color: var(--muted); }
+    .slide-divider {
+      font-size: .6rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: .1em; color: var(--dim); margin: .6rem 0 .4rem;
+    }
+
+    /* ── PRE-SETUP checklist ── */
+    .setup-grid { padding: .75rem 1.25rem; display: flex; flex-direction: column; gap: .4rem; }
+    .setup-item {
+      display: flex; align-items: center; gap: .65rem;
+      padding: .5rem .75rem; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--surface);
+      cursor: pointer; transition: background .12s;
+    }
+    .setup-item:hover { background: #263348; }
+    .setup-item.done { opacity: .45; }
+    .setup-item.done .setup-label { text-decoration: line-through; color: var(--dim); }
+    .setup-cb { width: 18px; height: 18px; accent-color: var(--green); flex-shrink: 0; }
+    .setup-label { font-size: .85rem; font-weight: 600; flex: 1; }
+    .setup-note  { font-size: .72rem; color: var(--muted); }
+
+    /* ── TRIAGE checklist ── */
+    .triage-list { padding: .5rem 1.25rem 0; }
+    .triage-item {
+      display: flex; align-items: flex-start; gap: .75rem;
+      padding: .75rem 0; border-bottom: 1px solid var(--border);
+    }
+    .triage-item:last-child { border-bottom: none; }
+    .triage-cb { width: 20px; height: 20px; accent-color: var(--orange); flex-shrink: 0; margin-top: .1rem; }
+    .triage-body { flex: 1; }
+    .triage-title { font-size: .9rem; font-weight: 700; color: #f1f5f9; }
+    .triage-sub   { font-size: .78rem; color: var(--muted); margin-top: .1rem; }
+    .triage-action { font-size: .75rem; color: var(--orange-light); margin-top: .2rem; font-style: italic; }
+
+    /* ── IMPACT numbers ── */
+    .impact-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: .5rem;
+      padding: .75rem 1.25rem;
+    }
+    .impact-card {
+      border-radius: 10px; border: 1px solid var(--border);
+      padding: .6rem .85rem; background: var(--surface);
+      text-align: center;
+    }
+    .impact-card.highlight { border-color: var(--green); background: var(--green-bg); }
+    .impact-num  { font-size: 1.5rem; font-weight: 800; color: #f1f5f9; line-height: 1.1; }
+    .impact-num.big { font-size: 2rem; color: var(--green-light); }
+    .impact-label { font-size: .65rem; color: var(--muted); margin-top: .15rem; text-transform: uppercase; letter-spacing: .05em; }
+
+    /* ── AVOID / LOOM tips ── */
+    .tips-row { display: flex; gap: .75rem; padding: .75rem 1.25rem; }
+    .tip-box { flex: 1; border-radius: 8px; border: 1px solid var(--border); padding: .55rem .75rem; background: var(--surface); }
+    .tip-title { font-size: .65rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: .35rem; }
+    .tip-item { font-size: .75rem; color: var(--text); line-height: 1.6; }
+    .tip-item::before { content: "• "; color: var(--dim); }
+    .tip-box.avoid .tip-item::before { content: "✗ "; color: var(--red); }
+    .tip-box.loom  .tip-item::before { content: "↗ "; color: var(--blue-light); }
+
+    /* ── TABS BAR ── */
+    .tabs-bar {
+      display: flex; gap: .4rem; flex-wrap: wrap;
+      padding: .75rem 1.25rem;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+    }
+    .tab-chip {
+      padding: .3rem .7rem; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--surface);
+      font-size: .75rem; font-weight: 600; color: var(--muted);
+      text-decoration: none; transition: background .15s;
+    }
+    .tab-chip:hover { background: #263348; color: var(--text); }
+    .tab-chip.active { border-color: var(--orange); color: var(--orange-light); background: var(--orange-bg); }
+    .tab-label {
+      font-size: .6rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: .1em; color: var(--dim); margin-bottom: .4rem;
+      padding: 0 1.25rem; padding-top: .75rem;
+    }
+
+    .reset-btn {
+      display: block; width: 100%; padding: .8rem;
+      background: var(--surface); color: var(--dim);
+      border: 1.5px solid var(--border); border-radius: 10px;
+      font-size: .88rem; cursor: pointer; text-align: center;
+      transition: background .15s; margin-top: 1.25rem;
+    }
+    .reset-btn:hover { background: #263348; color: var(--muted); }
+
+    @media (max-width: 480px) {
+      .header-title { font-size: .85rem; }
+      .timer-display { font-size: 1.25rem; }
+      .step { padding: .8rem 1rem; }
+      .sec-header { padding: .85rem 1rem; }
+      .impact-grid { grid-template-columns: 1fr; }
+      .tips-row { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-row">
+    <div>
+      <div class="header-title">Dev Agents — V3 Demo Script</div>
+      <div class="header-sub">Principal AI Engineer &nbsp;·&nbsp; 7 min hard limit</div>
+    </div>
+    <div class="stopwatch">
+      <span class="timer-display" id="timer">0:00</span>
+      <button class="sw-btn start" id="sw-btn" onclick="toggleTimer()">▶ Start</button>
+      <button class="sw-btn reset" onclick="resetTimer()">↺</button>
+    </div>
+  </div>
+  <div class="prog-wrap">
+    <div class="prog-bar"><div class="prog-fill" id="prog-fill"></div></div>
+    <div class="prog-label" id="prog-label">0 / 0</div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- ── PRÉ-SETUP ── -->
+  <div class="section s-setup" id="sec-setup">
+    <div class="sec-header" onclick="toggleSec('sec-setup')">
+      <span class="sec-icon">⚙️</span>
+      <div class="sec-info">
+        <div class="sec-title">Pré-Setup</div>
+        <div class="sec-sub">Checar antes de gravar — não começa sem tudo verde</div>
+      </div>
+      <span class="sec-time t-dim">antes</span>
+      <span class="sec-arrow">▶</span>
+    </div>
+    <div class="sec-body" id="body-setup">
+      <div class="setup-grid">
+        <div class="setup-item" onclick="toggleSetup(this)">
+          <input class="setup-cb" type="checkbox"/>
+          <span class="setup-label">Bot rodando no VPS</span>
+          <span class="setup-note">systemctl is-active jansen-bot.service → active</span>
+        </div>
+        <div class="setup-item" onclick="toggleSetup(this)">
+          <input class="setup-cb" type="checkbox"/>
+          <span class="setup-label">Telegram aberto + auth_service.py e orders_report.sql prontos para enviar</span>
+          <a href="https://t.me/jansen_dev_agent_bot" target="_blank" onclick="e=>e.stopPropagation()" class="setup-note" style="color:var(--blue-light);text-decoration:none;">→ @jansen_dev_agent_bot</a>
+        </div>
+        <div class="setup-item" onclick="toggleSetup(this)">
+          <input class="setup-cb" type="checkbox"/>
+          <span class="setup-label">Arquivo .md com action items pronto para enviar</span>
+          <span class="setup-note">sprint-planning-2026-04-30.md — 2 action items in English</span>
+        </div>
+        <div class="setup-item" onclick="toggleSetup(this)">
+          <input class="setup-cb" type="checkbox"/>
+          <span class="setup-label">Tab: PRs [Agent] aberta</span>
+          <a href="https://github.com/ToniJansen/jansen-dev-agent/pulls?q=is%3Apr+%5BAgent%5D" target="_blank" onclick="e=>e.stopPropagation()" class="setup-note" style="color:var(--blue-light);text-decoration:none;">→ GitHub PRs</a>
+        </div>
+        <div class="setup-item" onclick="toggleSetup(this)">
+          <input class="setup-cb" type="checkbox"/>
+          <span class="setup-label">Tab: pull request limpo — APPROVED ✅ — aba Files changed aberta</span>
+          <a href="https://github.com/ToniJansen/jansen-dev-agent/pulls?q=is%3Apr+is%3Aclosed+%5BAgent%5D" target="_blank" onclick="e=>e.stopPropagation()" class="setup-note" style="color:var(--blue-light);text-decoration:none;">→ PRs merged ✅</a>
+        </div>
+        <div class="setup-item" onclick="toggleSetup(this)">
+          <input class="setup-cb" type="checkbox"/>
+          <span class="setup-label">Tab: Issues action-item aberta</span>
+          <a href="https://github.com/ToniJansen/jansen-dev-agent/issues?q=is%3Aissue+label%3Aaction-item" target="_blank" onclick="e=>e.stopPropagation()" class="setup-note" style="color:var(--purple-light);text-decoration:none;">→ Issues 🎯</a>
+        </div>
+        <div class="setup-item" onclick="toggleSetup(this)">
+          <input class="setup-cb" type="checkbox"/>
+          <span class="setup-label">pull request ruim pré-aberto</span>
+          <span class="setup-note">NEEDS FIXES ❌ — aba Files changed pronta</span>
+        </div>
+      </div>
+      <div class="tips-row">
+        <div class="tip-box loom">
+          <div class="tip-title">Loom</div>
+          <div class="tip-item">1 bloco = 1 take</div>
+          <div class="tip-item">Errou? Pause + refaz a frase</div>
+          <div class="tip-item">2s silêncio antes do Pause</div>
+          <div class="tip-item">Não fale enquanto carrega</div>
+          <div class="tip-item">Trim início + fim no editor</div>
+        </div>
+        <div class="tip-box avoid">
+          <div class="tip-title">Evite</div>
+          <div class="tip-item">Múltiplas despedidas</div>
+          <div class="tip-item">Falar enquanto carrega</div>
+          <div class="tip-item">Navegar no IDE ao vivo</div>
+          <div class="tip-item">Auto-correções faladas</div>
+          <div class="tip-item">Explicar o agendado ao vivo</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── BLOCK 1: ABERTURA ── -->
+  <div class="section s-yellow" id="sec-open">
+    <div class="sec-header open" onclick="toggleSec('sec-open')">
+      <span class="sec-icon">🎥</span>
+      <div class="sec-info">
+        <div class="sec-title">Abertura</div>
+        <div class="sec-sub">Webcam — sem compartilhar tela</div>
+      </div>
+      <span class="sec-time t-yellow">0:00–0:15</span>
+      <span class="sec-arrow">▶</span>
+    </div>
+    <div class="sec-body open" id="body-open">
+
+      <div class="step" onclick="toggleStep(this)">
+        <input class="step-cb" type="checkbox"/>
+        <div class="step-body">
+          <div class="step-top">
+            <div class="step-title">Apresentação + gancho — compartilha tela</div>
+            <span class="step-time t-yellow">15s</span>
+          </div>
+          <div class="quote-block">"Hi — I'm Antonio Jansen. For the past several months I've been running autonomous agents that generate and review code 24/7 while I sleep — and I audit them. Watch."</div>
+          <div class="diga-row">
+            <span class="diga-label">transição</span>
+            <span class="diga-chip">compartilha tela</span>
+            <span class="diga-chip">abre Telegram</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── BLOCK 2: TELEGRAM AO VIVO ★ ── -->
+  <div class="section s-star" id="sec-telegram">
+    <div class="sec-header open" onclick="toggleSec('sec-telegram')">
+      <span class="sec-icon">★</span>
+      <div class="sec-info">
+        <div class="sec-title">Telegram Bot — Ao Vivo</div>
+        <div class="sec-sub">Envia arquivo → review → pull request → issues — tudo em tempo real</div>
+      </div>
+      <span class="sec-time t-star">0:15–3:35</span>
+      <span class="sec-arrow">▶</span>
+    </div>
+    <div class="sec-body open" id="body-telegram">
+
+      <!-- SLIDE: Bot Listener destacado -->
+      <div class="slide">
+        <div class="slide-agents">
+          <div class="slide-agent dim">
+            <div class="slide-agent-icon">🌙</div>
+            <div class="slide-agent-name">Overnight Agent</div>
+            <div class="slide-agent-sub">cron 02:00</div>
+          </div>
+          <div class="slide-agent dim">
+            <div class="slide-agent-icon">🌅</div>
+            <div class="slide-agent-name">Morning Agent</div>
+            <div class="slide-agent-sub">cron 07:00</div>
+          </div>
+          <div class="slide-agent a-blue">
+            <div class="slide-agent-icon">🤖</div>
+            <div class="slide-agent-name">Bot Listener</div>
+            <div class="slide-agent-sub">systemd 24/7 · @jansen_dev_agent_bot</div>
+          </div>
+        </div>
+        <div class="slide-divider">On-demand pipeline</div>
+        <div class="slide-flow">
+          <span class="sn-blue">Telegram</span>
+          <span class="slide-arrow">→</span>
+          <span class="sn">.py / .sql / .md / voice</span>
+          <span class="slide-arrow">→</span>
+          <span class="sn-purple">claude-sonnet-4-6</span>
+          <span class="slide-arrow">→</span>
+          <span class="sn">review + fix</span>
+        </div>
+        <div class="slide-outputs">
+          <span class="slide-out slide-out-blue">📋 GitHub pull request</span>
+          <span class="slide-out slide-out-purple">🎯 GitHub Issues</span>
+          <span class="slide-out slide-out-green">📱 Telegram reply</span>
+          <span class="slide-out slide-out-dim">APPROVED → auto-merge</span>
+        </div>
+      </div>
+
+      <!-- PARTE A: Python file -->
+      <div class="step" onclick="toggleStep(this)">
+        <input class="step-cb" type="checkbox"/>
+        <div class="step-body">
+          <div class="step-top">
+            <div class="step-title">Envia arquivo .py com bug — aguarda resposta</div>
+            <span class="step-time t-star">60s</span>
+          </div>
+          <div class="quote-block">"The scheduled agents work while I sleep. The bot works whenever I need it — real-time, on demand. That's the plus."</div>
+          <div class="quote-block">"I'm dropping this Python file directly into the bot — it has a bug. Watch."</div>
+          <div class="action-block">📎 Anexa: demo/mocks/auth_service.py</div>
+          <div class="quote-block">"The bot receives it, routes to the code reviewer, calls Claude Sonnet 4.6. Real-time — no scripts."</div>
+          <div class="diga-row">
+            <span class="diga-label">enquanto carrega</span>
+            <span class="diga-chip">routes automatically</span>
+            <span class="diga-chip">claude-sonnet-4-6</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step" onclick="toggleStep(this)">
+        <input class="step-cb" type="checkbox"/>
+        <div class="step-body">
+          <div class="step-top">
+            <div class="step-title">Review chegou no Telegram — aponta os findings</div>
+            <span class="step-time t-star">30s</span>
+          </div>
+          <div class="quote-block">"There it is. Security findings, quality issues, specific line numbers. And look — a pull request link at the bottom. The agent already opened it on GitHub."</div>
+          <div class="diga-row">
+            <span class="diga-label">aponta</span>
+            <span class="diga-chip">pull request link no Telegram</span>
+            <span class="diga-chip">line numbers</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step" onclick="toggleStep(this)">
+        <input class="step-cb" type="checkbox"/>
+        <div class="step-body">
+          <div class="step-top">
+            <div class="step-title">Clica no link do pull request — abre no GitHub</div>
+            <span class="step-time t-star">20s</span>
+          </div>
+          <div class="quote-block">"This pull request was opened seconds ago — fixed code committed, review report attached. Zero human intervention."</div>
+          <div class="diga-row">
+            <span class="diga-label">diga</span>
+            <span class="diga-chip">seconds ago</span>
+            <span class="diga-chip">zero human</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- SQL file -->
+      <div class="step" onclick="toggleStep(this)">
+        <input class="step-cb" type="checkbox"/>
+        <div class="step-body">
+          <div class="step-top">
+            <div class="step-title">Envia arquivo .sql — findings no Telegram</div>
+            <span class="step-time t-star">35s</span>
+          </div>
+          <div class="quote-block">"Same interface — SQL now. Multi-dialect, line-level findings."</div>
+          <div class="action-block">📎 Anexa: demo/mocks/orders_report.sql</div>
+          <div class="diga-row">
+            <span class="diga-label">aponta</span>
+            <span class="diga-chip">precedência OR/AND</span>
+            <span class="diga-chip">EXECUTE injection</span>
+            <span class="diga-chip">UPDATE sem transação</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- PARTE B: Meeting file -->
+      <div class="step" onclick="toggleStep(this)">
+        <input class="step-cb" type="checkbox"/>
+        <div class="step-body">
+          <div class="step-top">
+            <div class="step-title">Volta ao Telegram — envia .md de reunião</div>
+            <span class="step-time t-star">55s</span>
+          </div>
+          <div class="quote-block">"Now — meeting notes. Same bot, different agent."</div>
+          <div class="action-block">📎 Anexa: demo/mocks/meetings/sprint-planning-2026-04-30.md</div>
+          <div class="quote-block">"Decisions, blockers, open questions — extracted and sent back in seconds. And every action item becomes a GitHub issue automatically."</div>
+          <a class="inline-link" href="https://github.com/ToniJansen/jansen-dev-agent/issues?q=is%3Aissue+label%3Aaction-item" target="_blank" style="border-color:var(--purple);color:var(--purple-light);background:var(--purple-bg);">🎯 Issues — label: action-item</a>
+          <div class="diga-row">
+            <span class="diga-label">diga</span>
+            <span class="diga-chip">one file</span>
+            <span class="diga-chip">multiple agents</span>
+            <span class="diga-chip">automatic</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── BLOCK 3: TRIAGE ── -->
+  <div class="section s-star" id="sec-tabs">
+    <div class="sec-header open" onclick="toggleSec('sec-tabs')">
+      <span class="sec-icon">🔍</span>
+      <div class="sec-info">
+        <div class="sec-title">Triage — o que o agente produziu</div>
+        <div class="sec-sub">APPROVED primeiro · depois o arquivo com erros e o que eu verifico</div>
+      </div>
+      <span class="sec-time t-star">3:35–4:50</span>
+      <span class="sec-arrow">▶</span>
+    </div>
+    <div class="sec-body open" id="body-tabs">
+
+      <!-- B: pull request APPROVED — baseline -->
+      <div class="step" onclick="toggleStep(this)">
+        <input class="step-cb" type="checkbox"/>
+        <div class="step-body">
+          <div class="step-top">
+            <div class="step-title">B · Pull request de arquivo limpo — APPROVED ✅</div>
+            <span class="step-time t-star">20s</span>
+          </div>
+          <div class="quote-block">"First — a clean file. The agent reviewed it, found nothing, returned APPROVED. No patches, no pull request with fixes — just a green stamp. The system knows the difference."</div>
+          <a class="inline-link" href="https://github.com/ToniJansen/jansen-dev-agent/pull/10/files" target="_blank">→ Pull request #10 — user_auth_clean.py — APPROVED ✅</a>
+          <div class="diga-row">
+            <span class="diga-label">diga</span>
+            <span class="diga-chip">APPROVED</span>
+            <span class="diga-chip">the system knows the difference</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- A: pull request com erros — triage -->
+      <div class="step" onclick="toggleStep(this)">
+        <input class="step-cb" type="checkbox"/>
+        <div class="step-body">
+          <div class="step-top">
+            <div class="step-title">A · Pull request com erros — triage no arquivo do Telegram</div>
+            <span class="step-time t-star">55s</span>
+          </div>
+          <div class="quote-block">"Now this one — the file I just dropped. Agent found bugs, generated the fix, committed it. My job: verify. Agent did 80% — I own the quality."</div>
+          <div class="action-block">↳ abre aba Files changed no pull request do Telegram</div>
+          <div class="diga-row">
+            <span class="diga-label">gesto</span>
+            <span class="diga-chip">scroll devagar no diff</span>
+          </div>
+          <div class="action-block">↳ aponta <code style="font-size:.8em;background:transparent;">import jwt</code> — linha 1 do diff, verde, adicionada pelo agente</div>
+          <div class="quote-block">"This is where most AI agents fail — they import packages or call methods they invented. Looks right in review, crashes in production. This one: PyJWT — real package. But it's not declared in requirements. Fresh deploy — this breaks. That's what I catch."</div>
+          <a class="inline-link" href="https://github.com/ToniJansen/jansen-dev-agent/pull/19/files" target="_blank">→ Pull request #19 — Files changed — <code>import jwt</code> linha 1 do diff</a>
+          <div class="diga-row">
+            <span class="diga-label">diga</span>
+            <span class="diga-chip">invented</span>
+            <span class="diga-chip">crashes in production</span>
+            <span class="diga-chip">triage non-negotiable</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── BLOCK 4: AGENTES AGENDADOS ── -->
+  <div class="section s-green" id="sec-agents">
+    <div class="sec-header" onclick="toggleSec('sec-agents')">
+      <span class="sec-icon">🕐</span>
+      <div class="sec-info">
+        <div class="sec-title">Agentes Agendados</div>
+        <div class="sec-sub">Overnight 02:00 + Morning 07:00 — prova de execução autônoma</div>
+      </div>
+      <span class="sec-time t-green">4:50–5:40</span>
+      <span class="sec-arrow">▶</span>
+    </div>
+    <div class="sec-body" id="body-agents">
+
+      <!-- SLIDE: dois agentes -->
+      <div class="slide">
+        <div class="slide-agents">
+          <div class="slide-agent a-yellow">
+            <div class="slide-agent-icon">🌙</div>
+            <div class="slide-agent-name">Overnight Agent</div>
+            <div class="slide-agent-sub">cron 02:00 · code &amp; SQL review</div>
+          </div>
+          <div class="slide-agent a-green">
+            <div class="slide-agent-icon">🌅</div>
+            <div class="slide-agent-name">Morning Agent</div>
+            <div class="slide-agent-sub">cron 07:00 · meeting intelligence</div>
+          </div>
+          <div class="slide-agent dim">
+            <div class="slide-agent-icon">🤖</div>
+            <div class="slide-agent-name">Bot Listener</div>
+            <div class="slide-agent-sub">já mostrado</div>
+          </div>
+        </div>
+        <div class="slide-divider">Overnight pipeline</div>
+        <div class="slide-flow">
+          <span class="sn-yellow">code_auto_reviewed/</span>
+          <span class="slide-arrow">→</span>
+          <span class="sn-purple">Claude review</span>
+          <span class="slide-arrow">→</span>
+          <span class="sn">pytest before/after</span>
+          <span class="slide-arrow">→</span>
+          <span class="sn-blue">pull request + Telegram</span>
+        </div>
+        <div class="slide-divider">Morning pipeline</div>
+        <div class="slide-flow">
+          <span class="sn-green">meetings/*.md</span>
+          <span class="slide-arrow">→</span>
+          <span class="sn-purple">Claude extract</span>
+          <span class="slide-arrow">→</span>
+          <span class="sn-blue">Telegram summary</span>
+          <span class="slide-arrow">→</span>
+          <span class="sn-orange">GitHub issues</span>
+        </div>
+      </div>
+
+      <div class="step" onclick="toggleStep(this)">
+        <input class="step-cb" type="checkbox"/>
+        <div class="step-body">
+          <div class="step-top">
+            <div class="step-title">Explica os dois agendados — olha pra câmera</div>
+            <span class="step-time t-green">20s</span>
+          </div>
+          <div class="quote-block">"Beyond the bot — two scheduled agents. At 2AM: scans folder, runs Claude, opens pull requests, runs tests. At 7AM: meeting notes → Telegram summary → one GitHub issue per action item."</div>
+          <div class="diga-row">
+            <span class="diga-label">diga</span>
+            <span class="diga-chip">2AM overnight</span>
+            <span class="diga-chip">7AM morning</span>
+            <span class="diga-chip">wake up to decisions</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- C: prova — timestamps 02:00 na lista de pull requests -->
+      <div class="step" onclick="toggleStep(this)">
+        <input class="step-cb" type="checkbox"/>
+        <div class="step-body">
+          <div class="step-top">
+            <div class="step-title">C · Prova — timestamps 02:00 na lista de pull requests</div>
+            <span class="step-time t-green">20s</span>
+          </div>
+          <div class="quote-block">"Don't take my word for it — look at the timestamps. 02:00:11, 02:00:24. I was asleep. The agent scanned the folder, ran Claude, generated the fix, ran the tests, and opened this pull request. Zero intervention."</div>
+          <a class="inline-link" href="https://github.com/ToniJansen/jansen-dev-agent/pulls?q=is%3Apr+%5BAgent%5D" target="_blank">→ Pull requests [Agent] — scroll até #49 e #50 — timestamps 02:00 visíveis</a>
+          <div class="diga-row">
+            <span class="diga-label">aponta</span>
+            <span class="diga-chip">#49 · 02:00:11</span>
+            <span class="diga-chip">#50 · 02:00:24</span>
+            <span class="diga-chip">I was asleep</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- D: issues do morning cron -->
+      <div class="step" onclick="toggleStep(this)">
+        <input class="step-cb" type="checkbox"/>
+        <div class="step-body">
+          <div class="step-top">
+            <div class="step-title">D · Issues do morning cron — zero ticket manual</div>
+            <span class="step-time t-green">10s</span>
+          </div>
+          <div class="quote-block">"Every action item — a GitHub issue at 7AM. I didn't open a single ticket manually."</div>
+          <a class="inline-link" href="https://github.com/ToniJansen/jansen-dev-agent/issues?q=is%3Aissue+label%3Aaction-item" target="_blank" style="border-color:var(--purple);color:var(--purple-light);background:var(--purple-bg);">🎯 Issues — label: action-item (morning cron)</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── BLOCK 5: FECHAR ── -->
+  <div class="section s-red" id="sec-close">
+    <div class="sec-header" onclick="toggleSec('sec-close')">
+      <span class="sec-icon">🛑</span>
+      <div class="sec-info">
+        <div class="sec-title">Fechar</div>
+        <div class="sec-sub">Stack + agradecimento — webcam — sem bye bye</div>
+      </div>
+      <span class="sec-time t-red">5:40–6:40</span>
+      <span class="sec-arrow">▶</span>
+    </div>
+    <div class="sec-body" id="body-close">
+
+      <!-- Slide stack final -->
+      <div class="slide">
+        <div class="slide-divider">Stack</div>
+        <div class="slide-llm">
+          <div class="slide-llm-primary">
+            <div class="slide-llm-label primary">Primary · code / SQL / meetings</div>
+            <div class="slide-llm-model">claude-sonnet-4-6</div>
+            <div class="slide-llm-desc">Anthropic · structured reasoning</div>
+          </div>
+          <div class="slide-llm-sep">→</div>
+          <div class="slide-llm-fallback">
+            <div class="slide-llm-label fallback">Fallback · 3-key rotation</div>
+            <div class="slide-llm-model" style="font-size:.65rem;">llama-3.3-70b-versatile</div>
+            <div class="slide-llm-desc">Groq</div>
+          </div>
+        </div>
+        <div class="slide-llm" style="margin-top:.4rem;">
+          <div class="slide-llm-primary" style="border-color:var(--blue);background:var(--blue-bg);">
+            <div class="slide-llm-label primary" style="color:var(--blue-light);">Primary · voice</div>
+            <div class="slide-llm-model">whisper-1</div>
+            <div class="slide-llm-desc">OpenAI · auto-detect language</div>
+          </div>
+          <div class="slide-llm-sep">→</div>
+          <div class="slide-llm-fallback">
+            <div class="slide-llm-label fallback">Fallback</div>
+            <div class="slide-llm-model" style="font-size:.65rem;">whisper-large-v3-turbo</div>
+            <div class="slide-llm-desc">Groq</div>
+          </div>
+        </div>
+        <div class="slide-divider" style="margin-top:.75rem;">Infrastructure</div>
+        <div style="display:flex;gap:.4rem;flex-wrap:wrap;">
+          <span class="sn">DigitalOcean VPS</span>
+          <span class="sn">crontab</span>
+          <span class="sn">systemd</span>
+          <span class="sn">GitHub REST API</span>
+          <span class="sn">Telegram Bot API</span>
+          <span class="sn">pytest</span>
+          <span class="sn">Playwright PDF</span>
+        </div>
+      </div>
+
+      <a class="inline-link" href="https://github.com/ToniJansen/jansen-dev-agent#architecture" target="_blank" style="margin:.25rem 0 .5rem;">📐 README — Architecture diagram (Mermaid)</a>
+
+      <div class="step" onclick="toggleStep(this)">
+        <input class="step-cb" type="checkbox"/>
+        <div class="step-body">
+          <div class="step-top">
+            <div class="step-title">Impacto — olha pra câmera</div>
+            <span class="step-time t-red">20s</span>
+          </div>
+          <div class="quote-block">"Before: every code review was manual. Now: agents open, review, and fix overnight — I triage in the morning. The shift is real — from writing code to auditing code."</div>
+          <div class="diga-row">
+            <span class="diga-label">aponta</span>
+            <span class="diga-chip">before: 100% manual</span>
+            <span class="diga-chip">now: triage only</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step" onclick="toggleStep(this)">
+        <input class="step-cb" type="checkbox"/>
+        <div class="step-body">
+          <div class="step-top">
+            <div class="step-title">Frase final — olha pra câmera</div>
+            <span class="step-time t-red">40s</span>
+          </div>
+          <div class="quote-block">"Claude Sonnet 4.6, Groq fallback with 3-key rotation, Whisper for voice, DigitalOcean. Runs 24/7. Agents implement — I define architecture, write prompts, own quality. This is live in production, not a prototype. Happy to go deeper on a call."</div>
+          <div class="diga-row" style="border-color:#7f1d1d; background:#1a0505;">
+            <span class="diga-label" style="color:var(--red);">stop</span>
+            <span class="diga-chip" style="border-color:var(--red); background:var(--red-bg); color:var(--red-light);">sem bye bye</span>
+            <span class="diga-chip" style="border-color:var(--red); background:var(--red-bg); color:var(--red-light);">sem see you</span>
+            <span class="diga-chip" style="border-color:var(--red); background:var(--red-bg); color:var(--red-light);">sem thank you for watching</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <button class="reset-btn" onclick="resetAll()">↺ Reset all checkboxes</button>
+
+</div>
+
+<script>
+  let elapsed = 0, running = false, interval = null;
+  let droppedPlayed = false;
+  const WARN_AT = 6 * 60, OVER_AT = 7 * 60 + 30, DROP_AT = 7 * 60;
+
+  function playDrop() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      [0, 0.12].forEach((delay, i) => {
+        const osc = ctx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(i === 0 ? 880 : 660, ctx.currentTime + delay);
+        osc.frequency.exponentialRampToValueAtTime(i === 0 ? 440 : 330, ctx.currentTime + delay + 0.18);
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.35, ctx.currentTime + delay);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.25);
+        osc.connect(g); g.connect(ctx.destination);
+        osc.start(ctx.currentTime + delay); osc.stop(ctx.currentTime + delay + 0.3);
+      });
+    } catch(e) {}
+  }
+
+  function fmt(s) {
+    return Math.floor(s/60) + ':' + String(s%60).padStart(2,'0');
+  }
+
+  function tick() {
+    elapsed++;
+    const el = document.getElementById('timer');
+    el.textContent = fmt(elapsed);
+    el.className = 'timer-display' +
+      (elapsed >= OVER_AT ? ' over' : elapsed >= WARN_AT ? ' warn' : '');
+    if (elapsed === DROP_AT && !droppedPlayed) { droppedPlayed = true; playDrop(); }
+    const done = document.querySelectorAll('.step-cb:checked').length;
+    const all  = document.querySelectorAll('.step-cb').length;
+    const pct  = all ? (done / all * 100) : 0;
+    document.getElementById('prog-fill').style.width = Math.min(pct, 100) + '%';
+  }
+
+  function toggleTimer() {
+    const btn = document.getElementById('sw-btn');
+    if (running) {
+      clearInterval(interval); running = false;
+      btn.textContent = '▶ Resume'; btn.className = 'sw-btn start';
+    } else {
+      interval = setInterval(tick, 1000); running = true;
+      btn.textContent = '⏸ Pause'; btn.className = 'sw-btn stop';
+    }
+  }
+
+  function resetTimer() {
+    clearInterval(interval); running = false; elapsed = 0; droppedPlayed = false;
+    document.getElementById('timer').textContent = '0:00';
+    document.getElementById('timer').className = 'timer-display';
+    document.getElementById('sw-btn').textContent = '▶ Start';
+    document.getElementById('sw-btn').className = 'sw-btn start';
+    document.getElementById('prog-fill').style.width = '0%';
+  }
+
+  function toggleSec(id) {
+    const sec = document.getElementById(id);
+    const header = sec.querySelector('.sec-header');
+    const bodyId = 'body-' + id.replace('sec-', '');
+    const body = document.getElementById(bodyId);
+    if (!body) return;
+    header.classList.toggle('open');
+    body.classList.toggle('open');
+  }
+
+  function toggleStep(el) {
+    if (event.target.type === 'checkbox') return;
+    const cb = el.querySelector('.step-cb');
+    cb.checked = !cb.checked;
+    el.classList.toggle('done', cb.checked);
+    updateProg();
+  }
+
+  function toggleSetup(el) {
+    if (event.target.type === 'checkbox') return;
+    const cb = el.querySelector('.setup-cb');
+    cb.checked = !cb.checked;
+    el.classList.toggle('done', cb.checked);
+  }
+
+  function updateProg() {
+    const all  = document.querySelectorAll('.step-cb');
+    const done = document.querySelectorAll('.step-cb:checked');
+    const pct  = all.length ? (done.length / all.length * 100) : 0;
+    document.getElementById('prog-fill').style.width = pct + '%';
+    document.getElementById('prog-label').textContent = done.length + ' / ' + all.length;
+  }
+
+  function resetAll() {
+    document.querySelectorAll('.step-cb, .setup-cb').forEach(cb => cb.checked = false);
+    document.querySelectorAll('.step, .setup-item').forEach(el => el.classList.remove('done'));
+    updateProg();
+    resetTimer();
+  }
+
+  document.querySelectorAll('.step-cb').forEach(cb => {
+    cb.addEventListener('click', e => e.stopPropagation());
+    cb.addEventListener('change', function() {
+      this.closest('.step').classList.toggle('done', this.checked);
+      updateProg();
+    });
+  });
+
+  document.querySelectorAll('.setup-cb').forEach(cb => {
+    cb.addEventListener('click', e => e.stopPropagation());
+    cb.addEventListener('change', function() {
+      this.closest('.setup-item').classList.toggle('done', this.checked);
+    });
+  });
+
+  updateProg();
+</script>
+</body>
+</html>
