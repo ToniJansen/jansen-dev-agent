@@ -21,34 +21,96 @@ Three entry points. One pipeline. No human in the loop.
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                     Telegram                            │
-│         @jansen_dev_agent_bot  (long-polling)           │
-└────────────────────┬────────────────────────────────────┘
-                     │ messages / files
-          ┌──────────▼──────────┐
-          │    bot_listener.py  │  ← async handlers
-          └──────────┬──────────┘
-                     │ content-type detection
-        ┌────────────┼────────────┬─────────────┐
-        ▼            ▼            ▼             ▼
-  reviewer.py  sql_reviewer  meeting_proc   greeter.py
-        │            │            │
-        └────────────┴────────────┘
-                     │ all paths through
-              file_processor.py
-              (token budget + injection defense)
-                     │
-                  Anthropic API (claude-sonnet-4-6)
-                  └─ fallback: Groq (llama-3.3-70b-versatile)
+```mermaid
+flowchart TD
+    subgraph INPUTS["Inputs"]
+        TG_USER["👤 Telegram User\n.py / .sql / .md / voice / text"]
+        CRON_02["⏰ Cron 02:00\ndemo/code_auto_reviewed/*.py,*.sql"]
+        CRON_07["⏰ Cron 07:00\ndemo/meetings/*.md"]
+    end
 
-  Voice/audio messages:
-  🎙️ → transcriber.py → OpenAI Whisper → _detect_type() → same pipeline
-                         └─ fallback: Groq whisper-large-v3-turbo
+    subgraph BOT["bot_listener.py — systemd 24/7"]
+        ROUTE["_detect_type()\ncode / sql / meeting / greeting"]
+        VOICE_H["handle_voice()\ntranscribe → _process_text()"]
+        DOC_H["handle_document()\n.py / .sql / .md"]
+        TEXT_H["handle_text()"]
+    end
 
-  overnight_agent.py ──► git pull → review → fix → GitHub PR
-  morning_agent.py   ──► scan meetings/ → process → archive
+    subgraph OVERNIGHT["overnight_agent.py — 02:00"]
+        OA_LOOP["for each file\ngit pull → review → send\n→ test_before → fix → test_after\n→ open_pr → merge_or_notify → archive"]
+    end
+
+    subgraph MORNING["morning_agent.py — 07:00"]
+        MA_LOOP["for each .md\nprocess_meeting → send\n→ extract_action_items\n→ open_meeting_issues → archive"]
+    end
+
+    subgraph PROCESSORS["Processing Layer"]
+        REVIEWER["reviewer.py\nPython code review"]
+        SQL_REV["sql_reviewer.py\nSQL multi-dialect review"]
+        MEETING["meeting_processor.py\ndecisions / actions / blockers"]
+        FIXER["code_fixer.py\nauto-fix based on report"]
+        GREETER["greeter.py\nconversational fallback"]
+        TRANSCRIBER["transcriber.py\nWhisper STT"]
+    end
+
+    subgraph LLM["LLM Layer — groq_client.py"]
+        CLAUDE["Anthropic Claude Sonnet 4.6\n(primary — code/text/SQL/meetings)"]
+        GROQ["Groq llama-3.3-70b\n(fallback — 3-key rotation)"]
+        WHISPER_OAI["OpenAI whisper-1\n(primary — voice)"]
+        WHISPER_GROQ["Groq whisper-large-v3-turbo\n(fallback — voice)"]
+    end
+
+    subgraph OUTPUTS["Outputs"]
+        TG_REPLY["📱 Telegram Reply\nreview report / summary"]
+        GH_PR["🔀 GitHub Pull Request\nreview + fixed code"]
+        GH_ISSUE["📌 GitHub Issue\naction item (label: action-item)"]
+        GH_MERGE["✅ Auto-merge PR\nif APPROVED"]
+    end
+
+    TG_USER -->|document| DOC_H
+    TG_USER -->|text| TEXT_H
+    TG_USER -->|voice/audio| VOICE_H
+    CRON_02 --> OVERNIGHT
+    CRON_07 --> MORNING
+
+    VOICE_H --> TRANSCRIBER
+    TRANSCRIBER --> WHISPER_OAI
+    WHISPER_OAI -.->|fallback| WHISPER_GROQ
+    TRANSCRIBER --> TEXT_H
+
+    TEXT_H --> ROUTE
+    DOC_H --> ROUTE
+
+    ROUTE -->|code| REVIEWER
+    ROUTE -->|sql| SQL_REV
+    ROUTE -->|meeting| MEETING
+    ROUTE -->|greeting / short| GREETER
+
+    REVIEWER --> CLAUDE
+    SQL_REV --> CLAUDE
+    MEETING --> CLAUDE
+    FIXER --> CLAUDE
+    GREETER --> CLAUDE
+    CLAUDE -.->|fallback| GROQ
+
+    DOC_H -->|.py / .sql after review| FIXER
+    OA_LOOP --> REVIEWER
+    OA_LOOP --> SQL_REV
+    OA_LOOP --> FIXER
+
+    MORNING --> MEETING
+    MORNING --> GH_ISSUE
+
+    REVIEWER --> TG_REPLY
+    SQL_REV --> TG_REPLY
+    MEETING --> TG_REPLY
+    GREETER --> TG_REPLY
+
+    FIXER --> GH_PR
+    OA_LOOP --> GH_PR
+    GH_PR -->|APPROVED ✅| GH_MERGE
+
+    DOC_H -->|.md action items| GH_ISSUE
 ```
 
 ---
