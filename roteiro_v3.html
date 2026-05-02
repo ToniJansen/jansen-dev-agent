@@ -418,6 +418,11 @@
         </div>
         <div class="setup-item" onclick="toggleSetup(this)">
           <input class="setup-cb" type="checkbox"/>
+          <span class="setup-label">Terminal com comandos pré-digitados para o overnight ao vivo</span>
+          <span class="setup-note" style="font-family:monospace;font-size:.75rem;">cp demo/mocks/q_test_1.sql demo/code_auto_reviewed/ && cd jansen_dev_agent && python3 overnight_agent.py</span>
+        </div>
+        <div class="setup-item" onclick="toggleSetup(this)">
+          <input class="setup-cb" type="checkbox"/>
           <span class="setup-label">pull request ruim pré-aberto</span>
           <a href="https://github.com/ToniJansen/jansen-dev-agent/pull/53/files" target="_blank" onclick="e=>e.stopPropagation()" class="setup-note" style="color:var(--red-light);text-decoration:none;">→ PR #53 — auth_service.py — import bcrypt ❌</a>
         </div>
@@ -688,7 +693,7 @@
         <div class="sec-title">Agentes Agendados</div>
         <div class="sec-sub">Overnight 02:00 + Morning 07:00 — prova de execução autônoma</div>
       </div>
-      <span class="sec-time t-green">4:50–5:40</span>
+      <span class="sec-time t-green">4:50–6:20</span>
       <span class="sec-arrow">▶</span>
     </div>
     <div class="sec-body" id="body-agents">
@@ -751,6 +756,27 @@
         </div>
       </div>
 
+      <!-- LIVE: roda overnight agent ao vivo -->
+      <div class="step" onclick="toggleStep(this)">
+        <input class="step-cb" type="checkbox"/>
+        <div class="step-body">
+          <div class="step-top">
+            <div class="step-title">Roda o agente ao vivo — q_test_1.sql</div>
+            <span class="step-time t-green">40s</span>
+          </div>
+          <div class="quote-block">"Let me show you exactly what happens. I'm dropping a SQL file into the folder and running the agent right now."</div>
+          <div class="action-block" style="font-family:monospace;font-size:.8rem;">cp demo/mocks/q_test_1.sql demo/code_auto_reviewed/</div>
+          <div class="action-block" style="font-family:monospace;font-size:.8rem;">cd jansen_dev_agent && python3 overnight_agent.py</div>
+          <div class="quote-block">"Watch the logs — review, fix, tests, pull request. Link arrives in Telegram."</div>
+          <div class="diga-row">
+            <span class="diga-label">aponta</span>
+            <span class="diga-chip">logs no terminal</span>
+            <span class="diga-chip">PR link no Telegram</span>
+            <span class="diga-chip">same pipeline, no cron needed</span>
+          </div>
+        </div>
+      </div>
+
       <!-- C: prova — timestamps 02:00 na lista de pull requests -->
       <div class="step" onclick="toggleStep(this)">
         <input class="step-cb" type="checkbox"/>
@@ -794,7 +820,7 @@
         <div class="sec-title">Fechar</div>
         <div class="sec-sub">Stack + agradecimento — webcam — sem bye bye</div>
       </div>
-      <span class="sec-time t-red">5:40–6:40</span>
+      <span class="sec-time t-red">6:20–7:20</span>
       <span class="sec-arrow">▶</span>
     </div>
     <div class="sec-body" id="body-close">
