@@ -4,7 +4,7 @@
 
 </div>
 
-## Infográfico
+## Infographic
 
 ![Jansen Dev Agent — Total Automation for 24/7 Developers](infograph01.png)
 
