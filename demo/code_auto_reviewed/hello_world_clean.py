@@ -7,7 +7,7 @@ def greet(name: str) -> str:
 
 
 def main() -> None:
-    print(greet("World"), end="\n")
+    print(greet("World"))
 
 
 if __name__ == "__main__":
